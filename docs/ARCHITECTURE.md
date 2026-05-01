@@ -61,9 +61,11 @@ FastAPI service that exposes:
 - project / asset / job CRUD (see
   [`components/api/projects.md`](components/api/projects.md) and
   [`components/api/assets.md`](components/api/assets.md)),
-- a streaming chat endpoint that proxies to the agent orchestrator,
+- the chat session endpoints that drive the Creative Director and
+  emit a structured `BriefPlan` once the conversation converges (see
+  [`components/api/sessions.md`](components/api/sessions.md)),
 - a render endpoint that enqueues a render job,
-- WebSocket events for progress.
+- WebSocket events for progress (planned).
 
 Routes are kept thin: they parse input, delegate to a service, and
 translate domain errors. Business logic lives in `app.services.*`,

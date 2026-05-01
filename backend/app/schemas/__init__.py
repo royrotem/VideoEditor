@@ -8,5 +8,15 @@ happen here without touching SQL.
 
 from app.schemas.assets import AssetCreated, AssetRead
 from app.schemas.projects import ProjectCreate, ProjectRead
+from app.schemas.sessions import AssistantReply, MessageRead, SessionRead, UserTurn
 
-__all__ = ["AssetCreated", "AssetRead", "ProjectCreate", "ProjectRead"]
+__all__ = [
+    "AssetCreated",
+    "AssetRead",
+    "AssistantReply",
+    "MessageRead",
+    "ProjectCreate",
+    "ProjectRead",
+    "SessionRead",
+    "UserTurn",
+]

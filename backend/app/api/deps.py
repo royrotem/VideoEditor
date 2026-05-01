@@ -12,11 +12,14 @@ from typing import Annotated
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.client import LLMClient
 from app.core.config import Settings
 from app.db.session import get_db_session
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
+from app.repositories.sessions import MessageRepository, SessionRepository
 from app.services.assets import AssetService
+from app.services.chat import ChatService
 from app.storage.base import ObjectStore
 
 
@@ -30,9 +33,15 @@ def get_object_store(request: Request) -> ObjectStore:
     return store
 
 
+def get_llm_client(request: Request) -> LLMClient:
+    llm: LLMClient = request.app.state.llm_client
+    return llm
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ObjectStoreDep = Annotated[ObjectStore, Depends(get_object_store)]
+LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -43,8 +52,18 @@ def get_asset_repository(session: SessionDep) -> AssetRepository:
     return AssetRepository(session)
 
 
+def get_session_repository(session: SessionDep) -> SessionRepository:
+    return SessionRepository(session)
+
+
+def get_message_repository(session: SessionDep) -> MessageRepository:
+    return MessageRepository(session)
+
+
 ProjectRepoDep = Annotated[ProjectRepository, Depends(get_project_repository)]
 AssetRepoDep = Annotated[AssetRepository, Depends(get_asset_repository)]
+SessionRepoDep = Annotated[SessionRepository, Depends(get_session_repository)]
+MessageRepoDep = Annotated[MessageRepository, Depends(get_message_repository)]
 
 
 def get_asset_service(
@@ -61,4 +80,21 @@ def get_asset_service(
     )
 
 
+def get_chat_service(
+    llm: LLMClientDep,
+    projects: ProjectRepoDep,
+    assets: AssetRepoDep,
+    sessions: SessionRepoDep,
+    messages: MessageRepoDep,
+) -> ChatService:
+    return ChatService(
+        llm=llm,
+        projects=projects,
+        assets=assets,
+        sessions=sessions,
+        messages=messages,
+    )
+
+
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
+ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

@@ -12,8 +12,9 @@ from io import BytesIO
 from typing import Any, BinaryIO
 from uuid import UUID, uuid4
 
+from app.agents.client import LLMClient, LLMMessage, LLMResponse
 from app.core.errors import AssetNotFoundError, ExternalServiceError, NotFoundError
-from app.db.enums import AssetStatus
+from app.db.enums import AssetStatus, MessageRole, SessionStatus
 from app.storage.base import ObjectStore, StoredObject
 
 
@@ -166,3 +167,120 @@ class InMemoryObjectStore(ObjectStore):
 def make_upload_buffer(payload: bytes) -> BinaryIO:
     """Build a ``BinaryIO`` that mimics ``UploadFile.file`` for tests."""
     return BytesIO(payload)
+
+
+# --- Sessions / messages --------------------------------------------------
+
+
+class FakeSession:
+    def __init__(self, *, project_id: UUID) -> None:
+        now = datetime.now(UTC)
+        self.id: UUID = uuid4()
+        self.project_id = project_id
+        self.status: SessionStatus = SessionStatus.ACTIVE
+        self.created_at = now
+        self.updated_at = now
+        self.messages: list["FakeMessage"] = []
+
+
+class FakeMessage:
+    def __init__(
+        self,
+        *,
+        session_id: UUID,
+        role: MessageRole,
+        content: str,
+        agent_name: str | None = None,
+    ) -> None:
+        now = datetime.now(UTC)
+        self.id: UUID = uuid4()
+        self.session_id = session_id
+        self.role = role
+        self.content = content
+        self.agent_name = agent_name
+        self.created_at = now
+        self.updated_at = now
+
+
+class FakeSessionRepository:
+    def __init__(self) -> None:
+        self._rows: dict[UUID, FakeSession] = {}
+
+    async def create(self, *, project_id: UUID) -> FakeSession:
+        chat = FakeSession(project_id=project_id)
+        self._rows[chat.id] = chat
+        return chat
+
+    async def get(self, session_id: UUID) -> FakeSession:
+        chat = self._rows.get(session_id)
+        if chat is None:
+            raise NotFoundError(f"session {session_id} not found")
+        return chat
+
+    async def get_with_messages(self, session_id: UUID) -> FakeSession:
+        return await self.get(session_id)
+
+    async def list_for_project(self, project_id: UUID) -> list[FakeSession]:
+        return sorted(
+            (s for s in self._rows.values() if s.project_id == project_id),
+            key=lambda s: s.created_at,
+            reverse=True,
+        )
+
+    async def close(self, session_id: UUID) -> FakeSession:
+        chat = await self.get(session_id)
+        chat.status = SessionStatus.CLOSED
+        return chat
+
+
+class FakeMessageRepository:
+    def __init__(self, sessions: FakeSessionRepository) -> None:
+        self._sessions = sessions
+
+    async def append(
+        self,
+        *,
+        session_id: UUID,
+        role: MessageRole,
+        content: str,
+        agent_name: str | None = None,
+    ) -> FakeMessage:
+        chat = await self._sessions.get(session_id)
+        message = FakeMessage(
+            session_id=session_id, role=role, content=content, agent_name=agent_name
+        )
+        chat.messages.append(message)
+        return message
+
+    async def list_for_session(self, session_id: UUID) -> list[FakeMessage]:
+        chat = await self._sessions.get(session_id)
+        return list(chat.messages)
+
+
+# --- LLM ------------------------------------------------------------------
+
+
+class ScriptedLLM(LLMClient):
+    """Returns canned replies in order; records every call."""
+
+    def __init__(self, replies: list[str]) -> None:
+        self.replies = list(replies)
+        self.calls: list[dict[str, object]] = []
+
+    async def complete(
+        self,
+        *,
+        model: str,
+        system_prompt: str,
+        messages: list[LLMMessage],
+        max_tokens: int = 16000,
+        cache_system_prompt: bool = True,
+    ) -> LLMResponse:
+        self.calls.append(
+            {
+                "model": model,
+                "system_prompt": system_prompt,
+                "messages": list(messages),
+            }
+        )
+        return LLMResponse(text=self.replies.pop(0))

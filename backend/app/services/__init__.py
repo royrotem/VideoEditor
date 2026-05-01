@@ -5,5 +5,6 @@ agent network to fulfil one user-facing use case.
 """
 
 from app.services.assets import AssetService
+from app.services.chat import ChatService
 
-__all__ = ["AssetService"]
+__all__ = ["AssetService", "ChatService"]
