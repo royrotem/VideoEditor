@@ -64,6 +64,9 @@ FastAPI service that exposes:
 - the chat session endpoints that drive the Creative Director and
   emit a structured `BriefPlan` once the conversation converges (see
   [`components/api/sessions.md`](components/api/sessions.md)),
+- the planning endpoint that converts a `BriefPlan` + the project's
+  analysed assets into an `EditDecisionList` (see
+  [`components/api/planning.md`](components/api/planning.md)),
 - the render endpoints that submit an EDL, inspect the job, and
   fetch a presigned playback URL (see
   [`components/api/render.md`](components/api/render.md)),

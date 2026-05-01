@@ -25,6 +25,7 @@ from app.repositories.sessions import MessageRepository, SessionRepository
 from app.services.analysis import AssetAnalysisService
 from app.services.assets import AssetService
 from app.services.chat import ChatService
+from app.services.planning import PlanningService
 from app.services.render import RenderJobService
 from app.storage.base import ObjectStore
 
@@ -170,9 +171,18 @@ def get_render_service(
     )
 
 
+def get_planning_service(
+    llm: LLMClientDep,
+    projects: ProjectRepoDep,
+    assets: AssetRepoDep,
+) -> PlanningService:
+    return PlanningService(llm=llm, projects=projects, assets=assets)
+
+
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
 AssetAnalysisServiceDep = Annotated[
     AssetAnalysisService, Depends(get_asset_analysis_service)
 ]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+PlanningServiceDep = Annotated[PlanningService, Depends(get_planning_service)]
 RenderServiceDep = Annotated[RenderJobService, Depends(get_render_service)]
