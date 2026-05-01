@@ -1,8 +1,10 @@
 # Component: Services / AssetAnalysisService
 
-> Orchestrates the deterministic analysis stage on a stored asset:
-> download bytes from MinIO, run a :class:`Probe`, persist the
-> result into ``assets.analysis``, flip the asset's ``status``.
+> Orchestrates the analysis stages on a stored asset: download bytes
+> from MinIO, run a :class:`Probe`, optionally extract sample frames
+> and run the Vision Analyzer agent for a Hebrew summary + per-shot
+> descriptions, persist everything into ``assets.analysis``, flip
+> the asset's ``status``.
 
 ## Purpose
 
@@ -25,8 +27,16 @@ analyze(asset_id)
   ├── object_store.get(asset.s3_bucket, asset.s3_key)
   ├── write bytes to local scratch
   ├── probe.probe(local_path)
-  │     ├── on AppError → status=failed, analysis={"error": ...}
-  │     └── on success  → merge probe facts into analysis, status=ready
+  │     ├── on AppError → status=failed, analysis={"error": ...}, return
+  │     └── on success  → merge probe facts into analysis
+  ├── (optional) vision pass — best-effort:
+  │     ├── if frame_extractor and llm and duration_seconds > 0:
+  │     │     ├── frame_extractor.extract(local_path, count=N, duration=...)
+  │     │     ├── VisionAnalyzer(llm).run_with_frames(facts, frames)
+  │     │     └── merge {summary, shots} into analysis
+  │     └── any AppError here is logged as a warning, NOT propagated —
+  │         the deterministic half is still saved
+  ├── status = ready
   └── shutil.rmtree(scratch)            # always
 ```
 
@@ -45,22 +55,31 @@ class AssetAnalysisService:
 
 The probe contributes:
 
-| Key                  | Source field on :class:`ProbeResult` |
+| Key                  | Source                               |
 | -------------------- | ------------------------------------ |
-| `duration_seconds`   | `duration_seconds`                   |
-| `width`              | `width`                              |
-| `height`             | `height`                             |
-| `has_audio`          | `has_audio`                          |
-| `container_format`   | `container_format`                   |
+| `duration_seconds`   | :class:`ProbeResult`                 |
+| `width`              | :class:`ProbeResult`                 |
+| `height`             | :class:`ProbeResult`                 |
+| `has_audio`          | :class:`ProbeResult`                 |
+| `container_format`   | :class:`ProbeResult`                 |
 
-Keys outside that set (``shots``, ``transcript``, ``summary``,
-anything the Vision Analyzer agent writes later) are preserved by
-the merge step. Re-running the probe alone will not blow away
-qualitative facts.
+The Vision Analyzer (when wired in) adds:
+
+| Key        | Source                                         |
+| ---------- | ---------------------------------------------- |
+| `summary`  | :class:`VisionAnalysisOutput.summary`          |
+| `shots`    | :class:`VisionAnalysisOutput.shots` (JSON list)|
+
+Keys outside that set are preserved by the merge step. Re-running
+either pass alone does not blow away the other half.
 
 ## Dependencies
 
 - :class:`Probe` (default :class:`FFprobeProbe`).
+- :class:`FrameExtractor` (default :class:`FFmpegFrameExtractor`,
+  optional - vision pass is skipped silently if absent).
+- :class:`LLMClient` (default :class:`AnthropicLLMClient`, optional
+  - same).
 - :class:`ObjectStore` (production: :class:`S3ObjectStore`).
 - :class:`AssetRepository`.
 

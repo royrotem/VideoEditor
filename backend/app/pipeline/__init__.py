@@ -17,13 +17,23 @@ from app.pipeline.edl_validator import (
     ValidationReport,
     ValidationSeverity,
 )
+from app.pipeline.frame_extractor import (
+    ExtractedFrame,
+    FFmpegFrameExtractor,
+    FrameExtractor,
+    StubFrameExtractor,
+)
 from app.pipeline.probe import FFprobeProbe, Probe, ProbeResult, StubProbe
 
 __all__ = [
     "EdlValidator",
+    "ExtractedFrame",
+    "FFmpegFrameExtractor",
     "FFprobeProbe",
+    "FrameExtractor",
     "Probe",
     "ProbeResult",
+    "StubFrameExtractor",
     "StubProbe",
     "ValidationIssue",
     "ValidationReport",

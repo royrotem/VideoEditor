@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api.deps import (
+    get_asset_analysis_service,
     get_asset_repository,
     get_object_store,
     get_probe,
@@ -21,6 +22,7 @@ from app.api.deps import (
 from app.core.config import Settings
 from app.main import create_app
 from app.pipeline.probe import StubProbe
+from app.services.analysis import AssetAnalysisService
 
 from tests.fakes import FakeAssetRepository, FakeProjectRepository, InMemoryObjectStore
 
@@ -41,8 +43,17 @@ def app_client(
     app.dependency_overrides[get_asset_repository] = lambda: assets
     app.dependency_overrides[get_object_store] = lambda: store
     # Stub probe so tests do not invoke real ffprobe on placeholder bytes.
-    app.dependency_overrides[get_probe] = lambda: StubProbe(
+    stub_probe = StubProbe(
         duration_seconds=12.5, width=1920, height=1080, has_audio=True
+    )
+    app.dependency_overrides[get_probe] = lambda: stub_probe
+    # Skip the vision pass in route-level tests by injecting a probe-only
+    # AssetAnalysisService. Vision-path coverage lives in
+    # tests/test_analysis_service.py.
+    app.dependency_overrides[get_asset_analysis_service] = (
+        lambda: AssetAnalysisService(
+            probe=stub_probe, object_store=store, assets=assets
+        )
     )
 
     with TestClient(app) as client:
