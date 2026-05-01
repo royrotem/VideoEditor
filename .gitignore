@@ -1,0 +1,58 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.venv*/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# --- Node / Next.js ---
+node_modules/
+.next/
+out/
+.turbo/
+.pnpm-store/
+*.tsbuildinfo
+
+# --- Env / secrets ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Local data / media ---
+backend/uploads/
+backend/renders/
+backend/.cache/
+data/
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.mp3
+!docs/**/*.mp4
+!docs/**/*.mov
+
+# --- Docker volumes (if mounted locally) ---
+infra/volumes/
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Misc ---
+*.local
+.coverage.*
