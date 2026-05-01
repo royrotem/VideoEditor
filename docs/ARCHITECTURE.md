@@ -84,7 +84,10 @@ test backend uses a MinIO test container.
 
 ### 6. Database (`backend/app/db/`)
 PostgreSQL via SQLAlchemy 2 + Alembic. Tables: `projects`, `assets`,
-`sessions`, `messages`, `edl_versions`, `render_jobs`.
+`sessions`, `messages`, `edl_versions`, `render_jobs`. See
+[`components/db-schema.md`](components/db-schema.md) for the layout
+and [`components/db-migrations.md`](components/db-migrations.md) for
+the migration workflow.
 
 ### 7. Queue (`backend/app/queue/`)
 Celery on Redis. Long-running jobs (transcription, scene detection,
