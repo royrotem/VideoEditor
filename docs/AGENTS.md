@@ -43,7 +43,7 @@ this file is the index and shows how they fit together.
 | Vision Analyzer    | claude-sonnet-4-6 | Extracts shots, motion, faces, dominant colors, audio energy | planned |
 | [Creative Director](components/agents/creative-director.md) | claude-opus-4-7 | Holds the iterative Hebrew dialogue, proposes a plan | implemented |
 | [Brief Extractor](components/agents/brief-extractor.md) | claude-sonnet-4-6 | Distills an approved chat into a structured BriefPlan | implemented |
-| Editing Planner    | claude-sonnet-4-6 | Translates approved plan to a structured EDL                 | planned |
+| [Editing Planner](components/agents/editing-planner.md) | claude-sonnet-4-6 | Translates approved plan to a structured EDL | implemented |
 | Cut Specialist     | claude-sonnet-4-6 | Picks cut points, transitions, pacing                        | planned |
 | Audio Engineer     | claude-haiku-4-5  | Music selection, ducking, voice-over alignment               | planned |
 | Color / Effects    | claude-sonnet-4-6 | Color grade and effect parameters                            | planned |

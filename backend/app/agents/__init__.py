@@ -17,6 +17,7 @@ from app.agents.registry import AgentRegistry, get_registry
 # populate the registry.
 from app.agents import brief_extractor as _brief_extractor  # noqa: F401
 from app.agents import creative_director as _creative_director  # noqa: F401
+from app.agents import editing_planner as _editing_planner  # noqa: F401
 
 __all__ = [
     "Agent",

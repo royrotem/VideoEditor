@@ -66,14 +66,9 @@ class Orchestrator:
         previous_edl: EditDecisionList | None = None,
     ) -> EditDecisionList:
         """Ask the Planner to emit (or revise) an EDL for ``brief``."""
-        from pydantic import BaseModel, Field
+        from app.agents.editing_planner import PlannerInput
 
-        class _PlannerInput(BaseModel):
-            brief: BriefPlan
-            asset_facts: list[AssetFacts] = Field(default_factory=list)
-            previous_edl: EditDecisionList | None = None
-
-        payload = _PlannerInput(
+        payload = PlannerInput(
             brief=brief, asset_facts=asset_facts, previous_edl=previous_edl
         )
         return await self._run_agent(
