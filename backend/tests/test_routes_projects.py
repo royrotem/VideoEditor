@@ -15,10 +15,12 @@ from fastapi.testclient import TestClient
 from app.api.deps import (
     get_asset_repository,
     get_object_store,
+    get_probe,
     get_project_repository,
 )
 from app.core.config import Settings
 from app.main import create_app
+from app.pipeline.probe import StubProbe
 
 from tests.fakes import FakeAssetRepository, FakeProjectRepository, InMemoryObjectStore
 
@@ -38,6 +40,10 @@ def app_client(
     app.dependency_overrides[get_project_repository] = lambda: projects
     app.dependency_overrides[get_asset_repository] = lambda: assets
     app.dependency_overrides[get_object_store] = lambda: store
+    # Stub probe so tests do not invoke real ffprobe on placeholder bytes.
+    app.dependency_overrides[get_probe] = lambda: StubProbe(
+        duration_seconds=12.5, width=1920, height=1080, has_audio=True
+    )
 
     with TestClient(app) as client:
         yield client
@@ -70,7 +76,8 @@ def test_upload_asset_returns_preview_url(app_client: TestClient) -> None:
     assert upload.status_code == 201
     body = upload.json()
     assert body["asset"]["filename"] == "clip.mp4"
-    assert body["asset"]["status"] == "uploaded"
+    # Probe runs inline on upload, so the asset reports its post-analysis state.
+    assert body["asset"]["status"] == "ready"
     assert body["preview_url"].startswith("http://fake-store.local/")
     assert body["preview_url_ttl_seconds"] > 0
 
@@ -98,3 +105,20 @@ def test_get_missing_project_returns_404(app_client: TestClient) -> None:
     response = app_client.get("/projects/00000000-0000-0000-0000-000000000000")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "resource.not_found"
+
+
+def test_reanalyze_route_runs_probe_again(app_client: TestClient) -> None:
+    project_id = app_client.post(
+        "/projects", json={"name": "p", "description": None}
+    ).json()["id"]
+    asset_id = app_client.post(
+        f"/projects/{project_id}/assets",
+        files={"file": ("clip.mp4", b"abc", "video/mp4")},
+    ).json()["asset"]["id"]
+
+    response = app_client.post(
+        f"/projects/{project_id}/assets/{asset_id}/analyze"
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"

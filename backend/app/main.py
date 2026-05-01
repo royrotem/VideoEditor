@@ -26,6 +26,7 @@ from app.api.sessions import router as sessions_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.engine import create_engine_and_sessionmaker, dispose_engine
+from app.pipeline.probe import FFprobeProbe
 from app.queue.redis_client import create_redis_client
 from app.storage.s3 import S3ObjectStore
 
@@ -59,6 +60,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.object_store = object_store
     app.state.anthropic_client = anthropic_client
     app.state.llm_client = llm_client
+    app.state.probe = FFprobeProbe()
 
     try:
         yield

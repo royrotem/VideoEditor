@@ -11,13 +11,19 @@ can render a preview without round-tripping the bytes through the API.
 
 ## Public interface
 
-| Method | Path                                              | Body / Query             | Response               |
-| ------ | ------------------------------------------------- | ------------------------ | ---------------------- |
-| POST   | `/projects/{project_id}/assets`                   | multipart `file`         | `AssetCreated` 201     |
-| GET    | `/projects/{project_id}/assets`                   | -                        | `list[AssetRead]`      |
-| GET    | `/projects/{project_id}/assets/{asset_id}/url`    | `ttl_seconds`            | `{ url, ttl_seconds }` |
+| Method | Path                                                   | Body / Query             | Response               |
+| ------ | ------------------------------------------------------ | ------------------------ | ---------------------- |
+| POST   | `/projects/{project_id}/assets`                        | multipart `file`         | `AssetCreated` 201     |
+| POST   | `/projects/{project_id}/assets/{asset_id}/analyze`     | -                        | `AssetRead` 200        |
+| GET    | `/projects/{project_id}/assets`                        | -                        | `list[AssetRead]`      |
+| GET    | `/projects/{project_id}/assets/{asset_id}/url`         | `ttl_seconds`            | `{ url, ttl_seconds }` |
 
-Schemas live in `backend/app/schemas/assets.py`.
+Schemas live in `backend/app/schemas/assets.py`. The upload route
+runs the deterministic probe stage inline before responding, so the
+returned asset reports its post-analysis state (``ready`` or
+``failed``) and ``analysis`` carries duration / resolution /
+``has_audio`` ready for the Validator and the Creative Director.
+The dedicated ``/analyze`` route re-runs the probe on demand.
 
 ## Storage layout
 
