@@ -98,15 +98,30 @@ VideoEditor/
 
 ## Local Development
 
+The fastest path is `make dev`, which runs `scripts/dev.sh`:
+
 ```bash
-# Bring up the full local infrastructure (Postgres, Redis, MinIO)
+make dev               # infra + migrations + backend + frontend, in one terminal
+make smoke             # end-to-end sanity check against a running stack
+```
+
+Individual targets (also documented in `make help`):
+
+```bash
+make infra-up          # Postgres + Redis + MinIO via docker compose
+make migrate           # alembic upgrade head
+make backend-run       # uvicorn --reload, foreground
+make frontend-run      # next dev, foreground
+make test              # backend + frontend test suites
+```
+
+Manual equivalents are still valid:
+
+```bash
 docker compose -f infra/docker-compose.yml up -d
-
-# Backend
-cd backend && uv sync && uv run uvicorn app.main:app --reload
-
-# Frontend
-cd frontend && pnpm install && pnpm dev
+(cd backend && uv sync && uv run alembic upgrade head)
+(cd backend && uv run uvicorn app.main:app --reload)
+(cd frontend && pnpm install && pnpm dev)
 ```
 
 ## When You Are Asked To Make A Change
