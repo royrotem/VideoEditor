@@ -2,6 +2,9 @@
 
 > SQLAlchemy 2 async engine + session factory bound to PostgreSQL 16.
 
+> See also: [`db-schema.md`](db-schema.md) for the table layout and
+> [`db-migrations.md`](db-migrations.md) for Alembic.
+
 ## Purpose
 
 Own the database connection pool. Every other module gets database
@@ -14,6 +17,9 @@ never by holding the engine directly.
 def create_engine_and_sessionmaker(settings: Settings) -> tuple[AsyncEngine, async_sessionmaker[AsyncSession]]: ...
 async def dispose_engine(engine: AsyncEngine) -> None: ...
 async def health_check(engine: AsyncEngine) -> None: ...
+
+# FastAPI dependency, request-scoped session with auto commit/rollback
+async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]: ...
 ```
 
 ## Inputs
@@ -44,5 +50,6 @@ unreachable. Other call sites surface SQLAlchemy errors normally.
 
 - Pool sized for a single backend process (10 + 20 overflow). Adjust
   before scaling horizontally.
-- Migrations (Alembic) will land in Phase 2; they use the synchronous
-  DSN exposed by `Settings.database_url_sync`.
+- Migrations are managed by Alembic; see
+  [`db-migrations.md`](db-migrations.md). They use the synchronous DSN
+  exposed by `Settings.database_url_sync`.
