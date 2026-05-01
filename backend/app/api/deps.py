@@ -16,12 +16,15 @@ from app.agents.client import LLMClient
 from app.core.config import Settings
 from app.db.session import get_db_session
 from app.pipeline.probe import Probe
+from app.pipeline.renderer import Renderer
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
+from app.repositories.render_jobs import EdlVersionRepository, RenderJobRepository
 from app.repositories.sessions import MessageRepository, SessionRepository
 from app.services.analysis import AssetAnalysisService
 from app.services.assets import AssetService
 from app.services.chat import ChatService
+from app.services.render import RenderJobService
 from app.storage.base import ObjectStore
 
 
@@ -45,11 +48,17 @@ def get_probe(request: Request) -> Probe:
     return probe
 
 
+def get_renderer(request: Request) -> Renderer:
+    renderer: Renderer = request.app.state.renderer
+    return renderer
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ObjectStoreDep = Annotated[ObjectStore, Depends(get_object_store)]
 LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
 ProbeDep = Annotated[Probe, Depends(get_probe)]
+RendererDep = Annotated[Renderer, Depends(get_renderer)]
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -68,10 +77,24 @@ def get_message_repository(session: SessionDep) -> MessageRepository:
     return MessageRepository(session)
 
 
+def get_edl_version_repository(session: SessionDep) -> EdlVersionRepository:
+    return EdlVersionRepository(session)
+
+
+def get_render_job_repository(session: SessionDep) -> RenderJobRepository:
+    return RenderJobRepository(session)
+
+
 ProjectRepoDep = Annotated[ProjectRepository, Depends(get_project_repository)]
 AssetRepoDep = Annotated[AssetRepository, Depends(get_asset_repository)]
 SessionRepoDep = Annotated[SessionRepository, Depends(get_session_repository)]
 MessageRepoDep = Annotated[MessageRepository, Depends(get_message_repository)]
+EdlVersionRepoDep = Annotated[
+    EdlVersionRepository, Depends(get_edl_version_repository)
+]
+RenderJobRepoDep = Annotated[
+    RenderJobRepository, Depends(get_render_job_repository)
+]
 
 
 def get_asset_service(
@@ -114,8 +137,29 @@ def get_asset_analysis_service(
     )
 
 
+def get_render_service(
+    settings: SettingsDep,
+    renderer: RendererDep,
+    object_store: ObjectStoreDep,
+    projects: ProjectRepoDep,
+    assets: AssetRepoDep,
+    edl_versions: EdlVersionRepoDep,
+    render_jobs: RenderJobRepoDep,
+) -> RenderJobService:
+    return RenderJobService(
+        settings=settings,
+        renderer=renderer,
+        object_store=object_store,
+        projects=projects,
+        assets=assets,
+        edl_versions=edl_versions,
+        render_jobs=render_jobs,
+    )
+
+
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
 AssetAnalysisServiceDep = Annotated[
     AssetAnalysisService, Depends(get_asset_analysis_service)
 ]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
+RenderServiceDep = Annotated[RenderJobService, Depends(get_render_service)]

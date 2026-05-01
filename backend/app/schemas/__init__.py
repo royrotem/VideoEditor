@@ -8,6 +8,7 @@ happen here without touching SQL.
 
 from app.schemas.assets import AssetCreated, AssetRead
 from app.schemas.projects import ProjectCreate, ProjectRead
+from app.schemas.render import RenderJobRead, RenderOutputUrl, SubmitRenderBody
 from app.schemas.sessions import AssistantReply, MessageRead, SessionRead, UserTurn
 
 __all__ = [
@@ -17,6 +18,9 @@ __all__ = [
     "MessageRead",
     "ProjectCreate",
     "ProjectRead",
+    "RenderJobRead",
+    "RenderOutputUrl",
     "SessionRead",
+    "SubmitRenderBody",
     "UserTurn",
 ]

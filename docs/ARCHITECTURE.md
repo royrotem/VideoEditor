@@ -64,7 +64,9 @@ FastAPI service that exposes:
 - the chat session endpoints that drive the Creative Director and
   emit a structured `BriefPlan` once the conversation converges (see
   [`components/api/sessions.md`](components/api/sessions.md)),
-- a render endpoint that enqueues a render job,
+- the render endpoints that submit an EDL, inspect the job, and
+  fetch a presigned playback URL (see
+  [`components/api/render.md`](components/api/render.md)),
 - WebSocket events for progress (planned).
 
 Routes are kept thin: they parse input, delegate to a service, and
