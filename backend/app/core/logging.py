@@ -53,4 +53,9 @@ def configure_logging(settings: Settings) -> None:
 
 def get_logger(name: str | None = None) -> structlog.stdlib.BoundLogger:
     """Return a bound logger; prefer this over ``logging.getLogger``."""
-    return structlog.get_logger(name)
+    # ``structlog.get_logger`` is typed as returning ``Any`` because it
+    # honours the ``wrapper_class`` we set in :func:`configure_logging`.
+    # Asserting the concrete type lets the rest of the codebase get
+    # accurate completions without sprinkling casts at every call site.
+    logger: structlog.stdlib.BoundLogger = structlog.get_logger(name)
+    return logger

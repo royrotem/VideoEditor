@@ -23,7 +23,6 @@ from app.core.config import Settings
 from app.main import create_app
 from app.pipeline.probe import StubProbe
 from app.services.analysis import AssetAnalysisService
-
 from tests.fakes import FakeAssetRepository, FakeProjectRepository, InMemoryObjectStore
 
 
@@ -43,17 +42,13 @@ def app_client(
     app.dependency_overrides[get_asset_repository] = lambda: assets
     app.dependency_overrides[get_object_store] = lambda: store
     # Stub probe so tests do not invoke real ffprobe on placeholder bytes.
-    stub_probe = StubProbe(
-        duration_seconds=12.5, width=1920, height=1080, has_audio=True
-    )
+    stub_probe = StubProbe(duration_seconds=12.5, width=1920, height=1080, has_audio=True)
     app.dependency_overrides[get_probe] = lambda: stub_probe
     # Skip the vision pass in route-level tests by injecting a probe-only
     # AssetAnalysisService. Vision-path coverage lives in
     # tests/test_analysis_service.py.
-    app.dependency_overrides[get_asset_analysis_service] = (
-        lambda: AssetAnalysisService(
-            probe=stub_probe, object_store=store, assets=assets
-        )
+    app.dependency_overrides[get_asset_analysis_service] = lambda: AssetAnalysisService(
+        probe=stub_probe, object_store=store, assets=assets
     )
 
     with TestClient(app) as client:
@@ -76,9 +71,7 @@ def test_create_and_fetch_project(app_client: TestClient) -> None:
 
 
 def test_upload_asset_returns_preview_url(app_client: TestClient) -> None:
-    project_id = app_client.post(
-        "/projects", json={"name": "p", "description": None}
-    ).json()["id"]
+    project_id = app_client.post("/projects", json={"name": "p", "description": None}).json()["id"]
 
     upload = app_client.post(
         f"/projects/{project_id}/assets",
@@ -94,9 +87,7 @@ def test_upload_asset_returns_preview_url(app_client: TestClient) -> None:
 
 
 def test_list_assets_after_upload(app_client: TestClient) -> None:
-    project_id = app_client.post(
-        "/projects", json={"name": "p", "description": None}
-    ).json()["id"]
+    project_id = app_client.post("/projects", json={"name": "p", "description": None}).json()["id"]
     app_client.post(
         f"/projects/{project_id}/assets",
         files={"file": ("a.mp4", b"abc", "video/mp4")},
@@ -119,17 +110,13 @@ def test_get_missing_project_returns_404(app_client: TestClient) -> None:
 
 
 def test_reanalyze_route_runs_probe_again(app_client: TestClient) -> None:
-    project_id = app_client.post(
-        "/projects", json={"name": "p", "description": None}
-    ).json()["id"]
+    project_id = app_client.post("/projects", json={"name": "p", "description": None}).json()["id"]
     asset_id = app_client.post(
         f"/projects/{project_id}/assets",
         files={"file": ("clip.mp4", b"abc", "video/mp4")},
     ).json()["asset"]["id"]
 
-    response = app_client.post(
-        f"/projects/{project_id}/assets/{asset_id}/analyze"
-    )
+    response = app_client.post(f"/projects/{project_id}/assets/{asset_id}/analyze")
 
     assert response.status_code == 200
     assert response.json()["status"] == "ready"

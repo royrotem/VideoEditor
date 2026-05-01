@@ -12,7 +12,6 @@ from app.core.errors import ExternalServiceError
 from app.db.enums import AssetStatus
 from app.pipeline.probe import Probe, ProbeResult, StubProbe
 from app.services.analysis import AssetAnalysisService
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeProjectRepository,
@@ -49,7 +48,9 @@ async def _seed_asset(
         status=AssetStatus.UPLOADED,
     )
     await store.put(
-        asset.s3_bucket, asset.s3_key, make_upload_buffer(b"\x00\x01\x02\x03"),
+        asset.s3_bucket,
+        asset.s3_key,
+        make_upload_buffer(b"\x00\x01\x02\x03"),
         content_type="video/mp4",
     )
     return project, asset
@@ -61,13 +62,9 @@ async def test_analyze_writes_probe_facts_and_marks_ready(
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
     service = AssetAnalysisService(
-        probe=StubProbe(
-            duration_seconds=12.5, width=1920, height=1080, has_audio=True
-        ),
+        probe=StubProbe(duration_seconds=12.5, width=1920, height=1080, has_audio=True),
         object_store=store,
         assets=assets,
     )
@@ -88,12 +85,8 @@ async def test_analyze_marks_failed_and_stores_error_when_probe_raises(
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
-    service = AssetAnalysisService(
-        probe=_FailingProbe(), object_store=store, assets=assets
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
+    service = AssetAnalysisService(probe=_FailingProbe(), object_store=store, assets=assets)
 
     updated = await service.analyze(asset.id)
 
@@ -106,9 +99,7 @@ async def test_analyze_preserves_prior_analysis_keys(settings: Settings) -> None
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
     asset.analysis = {"summary": "warm wedding ceremony", "shots": ["s1", "s2"]}
 
     service = AssetAnalysisService(
@@ -136,7 +127,9 @@ async def test_analyze_raises_when_asset_does_not_exist(
         assets=FakeAssetRepository(),
     )
 
-    with pytest.raises(Exception):
+    from app.core.errors import AssetNotFoundError
+
+    with pytest.raises(AssetNotFoundError):
         await service.analyze(uuid4())
 
 
@@ -152,9 +145,7 @@ async def test_analyze_runs_vision_pass_when_extractor_and_llm_provided(
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
 
     captured: dict[str, object] = {}
 
@@ -209,9 +200,7 @@ async def test_vision_pass_skipped_silently_when_extractor_missing(
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
 
     service = AssetAnalysisService(
         probe=StubProbe(duration_seconds=10.0),
@@ -238,9 +227,7 @@ async def test_vision_pass_failure_does_not_break_probe_facts(
     projects = FakeProjectRepository()
     assets = FakeAssetRepository()
     store = InMemoryObjectStore()
-    _, asset = await _seed_asset(
-        settings=settings, projects=projects, assets=assets, store=store
-    )
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
 
     class _AngryLLM:
         async def complete(

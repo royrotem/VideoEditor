@@ -54,9 +54,7 @@ def test_valid_edl_returns_ok_report() -> None:
     asset_id = uuid4()
     validator = EdlValidator([AssetSpec(asset_id=asset_id, duration_seconds=30.0)])
 
-    report = validator.validate(
-        _edl(_clip(asset_id=asset_id, source_start=0, source_end=10))
-    )
+    report = validator.validate(_edl(_clip(asset_id=asset_id, source_start=0, source_end=10)))
 
     assert report.ok is True
     assert report.issues == []
@@ -68,9 +66,7 @@ def test_valid_edl_returns_ok_report() -> None:
 def test_unknown_asset_id_yields_error() -> None:
     validator = EdlValidator([AssetSpec(asset_id=uuid4(), duration_seconds=30.0)])
 
-    report = validator.validate(
-        _edl(_clip(asset_id=uuid4(), source_start=0, source_end=5))
-    )
+    report = validator.validate(_edl(_clip(asset_id=uuid4(), source_start=0, source_end=5)))
 
     assert report.ok is False
     codes = [issue.code for issue in report.issues]
@@ -81,9 +77,7 @@ def test_source_end_past_asset_duration_is_error() -> None:
     asset_id = uuid4()
     validator = EdlValidator([AssetSpec(asset_id=asset_id, duration_seconds=10.0)])
 
-    report = validator.validate(
-        _edl(_clip(asset_id=asset_id, source_start=0, source_end=20))
-    )
+    report = validator.validate(_edl(_clip(asset_id=asset_id, source_start=0, source_end=20)))
 
     assert report.ok is False
     assert any(i.code == "source_end_past_asset_duration" for i in report.issues)
@@ -192,9 +186,7 @@ class _FakeAssetRow:
 
 def test_from_asset_row_reads_duration_from_analysis() -> None:
     asset_id = uuid4()
-    spec = AssetSpec.from_asset_row(
-        _FakeAssetRow(asset_id, {"duration_seconds": 12.5})
-    )
+    spec = AssetSpec.from_asset_row(_FakeAssetRow(asset_id, {"duration_seconds": 12.5}))
     assert spec.asset_id == asset_id
     assert spec.duration_seconds == pytest.approx(12.5)
 

@@ -99,9 +99,7 @@ class Agent(Generic[InputT, OutputT]):
             return self.output_model.model_validate(data)
         except (json.JSONDecodeError, ValidationError) as exc:
             self._log.warning("agent.output.invalid", text=response.text[:500])
-            raise ExternalServiceError(
-                f"agent {self.name} returned invalid output: {exc}"
-            ) from exc
+            raise ExternalServiceError(f"agent {self.name} returned invalid output: {exc}") from exc
 
 
 class ChatAgent:

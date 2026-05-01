@@ -99,9 +99,7 @@ class S3ObjectStore(ObjectStore):
                 ExpiresIn=ttl_seconds,
             )
         except (BotoCoreError, ClientError) as exc:
-            raise ExternalServiceError(
-                f"failed to presign s3://{bucket}/{key}: {exc}"
-            ) from exc
+            raise ExternalServiceError(f"failed to presign s3://{bucket}/{key}: {exc}") from exc
 
     async def health_check(self) -> None:
         try:

@@ -11,7 +11,6 @@ from app.agents.contracts import BriefPlan
 from app.core.errors import NotFoundError, ValidationError
 from app.db.enums import MessageRole, SessionStatus
 from app.services.chat import ChatService
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeMessageRepository,
@@ -122,9 +121,7 @@ async def test_send_turn_appends_messages_and_does_not_close_when_not_converged(
         messages_repo=messages_repo,
         llm=llm,
     )
-    chat, _, _ = await service.start_session(
-        project_id=project.id, brief="רעיון"
-    )
+    chat, _, _ = await service.start_session(project_id=project.id, brief="רעיון")
 
     user_msg, assistant_msg, converged = await service.send_turn(
         session_id=chat.id, content="אני אוהב פופ"
@@ -155,13 +152,9 @@ async def test_send_turn_closes_session_when_director_emits_summary(
         messages_repo=messages_repo,
         llm=llm,
     )
-    chat, _, _ = await service.start_session(
-        project_id=project.id, brief="רעיון"
-    )
+    chat, _, _ = await service.start_session(project_id=project.id, brief="רעיון")
 
-    _, _, converged = await service.send_turn(
-        session_id=chat.id, content="כן, בוא נלך עם זה"
-    )
+    _, _, converged = await service.send_turn(session_id=chat.id, content="כן, בוא נלך עם זה")
 
     assert converged is True
     refreshed = await sessions_repo.get(chat.id)
@@ -181,9 +174,7 @@ async def test_send_turn_rejects_closed_session(
         messages_repo=messages_repo,
         llm=llm,
     )
-    chat, _, _ = await service.start_session(
-        project_id=project.id, brief="x"
-    )
+    chat, _, _ = await service.start_session(project_id=project.id, brief="x")
     await sessions_repo.close(chat.id)
 
     with pytest.raises(ValidationError, match="closed"):
@@ -214,9 +205,7 @@ async def test_extract_brief_runs_brief_extractor_on_full_transcript(
         messages_repo=messages_repo,
         llm=llm,
     )
-    chat, _, _ = await service.start_session(
-        project_id=project.id, brief="רעיון"
-    )
+    chat, _, _ = await service.start_session(project_id=project.id, brief="רעיון")
 
     plan = await service.extract_brief(session_id=chat.id)
 

@@ -32,7 +32,9 @@ describe("projectsApi.create", () => {
 
     expect(result).toEqual({ id: "proj-1", name: "demo", description: null });
     expect(fetched).toHaveBeenCalledTimes(1);
-    const [url, init] = fetched.mock.calls[0];
+    const call = fetched.mock.calls[0];
+    expect(call).toBeDefined();
+    const [url, init] = call!;
     expect(url).toBe("/api/projects");
     expect(init?.method).toBe("POST");
     expect((init?.headers as Record<string, string>)["content-type"]).toBe(

@@ -34,7 +34,7 @@ from app.pipeline.edl_validator import (
     EdlValidator,
     ValidationReport,
 )
-from app.pipeline.renderer import RenderInput, Renderer
+from app.pipeline.renderer import Renderer, RenderInput
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
 from app.repositories.render_jobs import EdlVersionRepository, RenderJobRepository
@@ -105,9 +105,7 @@ class RenderJobService:
             edl=edl.model_dump(mode="json"),
             session_id=session_id,
         )
-        job = await self._render_jobs.create(
-            project_id=project_id, edl_version_id=edl_version.id
-        )
+        job = await self._render_jobs.create(project_id=project_id, edl_version_id=edl_version.id)
 
         if self._enqueuer is not None:
             await self._enqueuer.enqueue(job.id)
@@ -132,9 +130,7 @@ class RenderJobService:
 
         validation = await self._validate(job.project_id, edl)
         if not validation.ok:
-            return await self._render_jobs.mark_failed(
-                job.id, error_message=_summarise(validation)
-            )
+            return await self._render_jobs.mark_failed(job.id, error_message=_summarise(validation))
 
         await self._render_jobs.mark_running(job.id)
 
@@ -142,10 +138,8 @@ class RenderJobService:
             return await self._render_and_publish(job.project_id, job.id, edl)
         except AppError as exc:
             self._log.warning("render.failed", job_id=str(job.id), error=exc.message)
-            return await self._render_jobs.mark_failed(
-                job.id, error_message=exc.message
-            )
-        except Exception as exc:  # noqa: BLE001 - convert to a stable error
+            return await self._render_jobs.mark_failed(job.id, error_message=exc.message)
+        except Exception as exc:
             self._log.exception("render.crashed", job_id=str(job.id))
             return await self._render_jobs.mark_failed(
                 job.id, error_message=f"unexpected error: {exc}"
@@ -162,9 +156,7 @@ class RenderJobService:
 
     # --- Internals -------------------------------------------------------
 
-    async def _validate(
-        self, project_id: UUID, edl: EditDecisionList
-    ) -> ValidationReport:
+    async def _validate(self, project_id: UUID, edl: EditDecisionList) -> ValidationReport:
         """Run :class:`EdlValidator` over ``edl`` against project assets.
 
         Note: we do not pass ``previous_version`` to the validator -
@@ -231,11 +223,7 @@ class RenderJobService:
         asset, even if the EDL references the same asset multiple
         times (which is common for "use the same clip twice" edits).
         """
-        wanted: set[UUID] = {
-            clip.clip.asset_id
-            for track in edl.timeline
-            for clip in track.clips
-        }
+        wanted: set[UUID] = {clip.clip.asset_id for track in edl.timeline for clip in track.clips}
 
         rows = await self._assets.list_for_project(project_id)
         by_id = {a.id: a for a in rows}
@@ -265,6 +253,5 @@ def _summarise(report: ValidationReport) -> str:
     if not report.issues:
         raise ValidationError("validation report has no issues")
     return "; ".join(
-        f"{issue.code} ({issue.location or 'edl'}): {issue.message}"
-        for issue in report.issues
+        f"{issue.code} ({issue.location or 'edl'}): {issue.message}" for issue in report.issues
     )

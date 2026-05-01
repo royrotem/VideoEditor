@@ -15,14 +15,15 @@ now and the simplicity is worth it.
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 from uuid import UUID
 
+from celery import shared_task
 from celery.utils.log import get_task_logger
 
 from app.core.config import get_settings
 from app.db.engine import create_engine_and_sessionmaker, dispose_engine
 from app.pipeline.renderer import FFmpegRenderer
-from app.queue.celery_app import celery_app
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
 from app.repositories.render_jobs import EdlVersionRepository, RenderJobRepository
@@ -32,8 +33,8 @@ from app.storage.s3 import S3ObjectStore
 log = get_task_logger(__name__)
 
 
-@celery_app.task(name="render.run", bind=True)
-def run_render_job(self, job_id: str) -> dict[str, str]:
+@shared_task(name="render.run", bind=True)
+def run_render_job(self: Any, job_id: str) -> dict[str, str]:
     """Worker entry point.
 
     Returns a small dict so the Celery result backend records the

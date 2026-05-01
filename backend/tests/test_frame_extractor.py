@@ -18,7 +18,6 @@ from app.pipeline.frame_extractor import (
     _evenly_spaced_timestamps,
 )
 
-
 # --- timestamp helper ---------------------------------------------------
 
 
@@ -29,7 +28,9 @@ def test_timestamps_avoid_edges_for_more_than_one_frame() -> None:
     assert timestamps[0] == pytest.approx(1.0)
     assert timestamps[-1] == pytest.approx(9.0)
     # Equally spaced.
-    deltas = [b - a for a, b in zip(timestamps, timestamps[1:], strict=True)]
+    from itertools import pairwise
+
+    deltas = [b - a for a, b in pairwise(timestamps)]
     assert all(abs(d - deltas[0]) < 1e-6 for d in deltas)
 
 
@@ -57,9 +58,7 @@ async def test_stub_extractor_returns_count_frames_with_distinct_payloads(
 ) -> None:
     extractor = StubFrameExtractor()
 
-    frames = await extractor.extract(
-        tmp_path / "video.mp4", count=3, duration_seconds=6.0
-    )
+    frames = await extractor.extract(tmp_path / "video.mp4", count=3, duration_seconds=6.0)
 
     assert len(frames) == 3
     timestamps = [f.timestamp_seconds for f in frames]
@@ -80,9 +79,7 @@ async def test_stub_extractor_returns_empty_for_zero_count(tmp_path: Path) -> No
 
 async def test_ffmpeg_extractor_raises_external_service_error_when_path_missing() -> None:
     with pytest.raises(ExternalServiceError, match="does not exist"):
-        await FFmpegFrameExtractor().extract(
-            Path("/no/such/file.mp4"), count=1, duration_seconds=1
-        )
+        await FFmpegFrameExtractor().extract(Path("/no/such/file.mp4"), count=1, duration_seconds=1)
 
 
 async def test_ffmpeg_extractor_raises_when_binary_missing(

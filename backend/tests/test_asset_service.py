@@ -10,7 +10,6 @@ from app.core.config import Settings
 from app.core.errors import NotFoundError
 from app.db.enums import AssetStatus
 from app.services.assets import AssetService
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeProjectRepository,
@@ -46,9 +45,7 @@ def service(
     assets: FakeAssetRepository,
     store: InMemoryObjectStore,
 ) -> AssetService:
-    return AssetService(
-        settings=settings, object_store=store, projects=projects, assets=assets
-    )
+    return AssetService(settings=settings, object_store=store, projects=projects, assets=assets)
 
 
 async def test_upload_writes_to_store_and_db(

@@ -35,9 +35,7 @@ class CreativeDirector(ChatAgent):
     system_prompt = CREATIVE_DIRECTOR_SYSTEM_PROMPT
 
     @staticmethod
-    def build_opening_user_message(
-        *, brief: str, asset_facts: list[AssetFacts]
-    ) -> LLMMessage:
+    def build_opening_user_message(*, brief: str, asset_facts: list[AssetFacts]) -> LLMMessage:
         """Format the first user turn for a new chat session.
 
         The asset facts are serialised under an ASSET_FACTS header so
@@ -46,9 +44,9 @@ class CreativeDirector(ChatAgent):
         """
         facts_json = "[]"
         if asset_facts:
-            facts_json = "[\n" + ",\n".join(
-                fact.model_dump_json(indent=2) for fact in asset_facts
-            ) + "\n]"
+            facts_json = (
+                "[\n" + ",\n".join(fact.model_dump_json(indent=2) for fact in asset_facts) + "\n]"
+            )
         body = (
             f"BRIEF:\n{brief}\n\n"
             f"ASSET_FACTS:\n{facts_json}\n\n"

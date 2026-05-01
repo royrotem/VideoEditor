@@ -8,7 +8,7 @@ wiring in one place and makes it easy to swap implementations in tests.
 
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from app.agents.base import Agent, ChatAgent
 from app.agents.client import LLMClient
@@ -41,12 +41,13 @@ class AgentRegistry:
         """
         name = getattr(agent_cls, "name", None)
         if not name or name in {"agent", "chat_agent"}:
-            raise ValueError(
-                f"agent class {agent_cls.__name__} must declare a unique 'name'"
-            )
+            raise ValueError(f"agent class {agent_cls.__name__} must declare a unique 'name'")
         if name in self._classes:
             raise ValueError(f"agent name {name!r} is already registered")
-        self._classes[name] = agent_cls
+        # ``AnyAgent`` is the union ``Agent | ChatAgent``; ``T`` is a
+        # bound subclass. The assignment is sound, but mypy cannot
+        # narrow ``type[T]`` to the union without a cast.
+        self._classes[name] = cast("type[AnyAgent]", agent_cls)
         return agent_cls
 
     def build(self, name: str, llm: LLMClient) -> AnyAgent:

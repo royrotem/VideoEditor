@@ -101,9 +101,7 @@ def brief() -> BriefPlan:
     )
 
 
-async def test_planner_produces_valid_edl(
-    asset_facts: list[AssetFacts], brief: BriefPlan
-) -> None:
+async def test_planner_produces_valid_edl(asset_facts: list[AssetFacts], brief: BriefPlan) -> None:
     asset_id = str(asset_facts[0].asset_id)
     llm = _ScriptedLLM([_valid_edl_json(asset_id, version=1)])
     planner = EditingPlanner(llm)
@@ -117,9 +115,7 @@ async def test_planner_produces_valid_edl(
     assert str(edl.timeline[0].clips[0].clip.asset_id) == asset_id
 
 
-async def test_planner_uses_sonnet_4_6(
-    asset_facts: list[AssetFacts], brief: BriefPlan
-) -> None:
+async def test_planner_uses_sonnet_4_6(asset_facts: list[AssetFacts], brief: BriefPlan) -> None:
     llm = _ScriptedLLM([_valid_edl_json(str(asset_facts[0].asset_id))])
     planner = EditingPlanner(llm)
 

@@ -18,9 +18,9 @@ revise (warnings) or refuse to render (errors).
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterable
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -73,7 +73,7 @@ class AssetSpec:
     duration_seconds: float
 
     @classmethod
-    def from_asset_row(cls, asset: object) -> "AssetSpec":
+    def from_asset_row(cls, asset: object) -> AssetSpec:
         """Build an :class:`AssetSpec` from a DB row (or any duck-type).
 
         Reads ``duration_seconds`` from ``asset.analysis`` (the JSON
@@ -194,10 +194,7 @@ class EdlValidator:
                 ValidationIssue(
                     severity=ValidationSeverity.ERROR,
                     code="source_start_negative",
-                    message=(
-                        f"source_start_seconds is negative: "
-                        f"{ref.source_start_seconds}"
-                    ),
+                    message=(f"source_start_seconds is negative: " f"{ref.source_start_seconds}"),
                     location=where,
                 )
             )

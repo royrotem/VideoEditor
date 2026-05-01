@@ -34,10 +34,8 @@ class ConversationTranscript(BaseModel):
     turns: list[LLMMessageDict] = Field(default_factory=list)
 
     @classmethod
-    def from_messages(cls, messages: list[LLMMessage]) -> "ConversationTranscript":
-        return cls(
-            turns=[LLMMessageDict(role=m.role, content=m.content) for m in messages]
-        )
+    def from_messages(cls, messages: list[LLMMessage]) -> ConversationTranscript:
+        return cls(turns=[LLMMessageDict(role=m.role, content=m.content) for m in messages])
 
 
 @get_registry().register
@@ -62,7 +60,5 @@ class BriefExtractor(Agent[ConversationTranscript, BriefPlan]):
         for turn in input_payload.turns:
             speaker = "משתמש" if turn.role == "user" else "במאי"
             lines.append(f"[{speaker}] {turn.content}")
-        lines.append(
-            "\nהחזר/י כעת את אובייקט ה-JSON היחיד שמתאר את ה-BriefPlan."
-        )
+        lines.append("\nהחזר/י כעת את אובייקט ה-JSON היחיד שמתאר את ה-BriefPlan.")
         return "\n".join(lines)

@@ -18,6 +18,7 @@ Two implementations land here:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
@@ -111,23 +112,17 @@ class FFmpegRenderer(Renderer):
             )
             _stdout, stderr = await process.communicate()
         except FileNotFoundError as exc:  # ffmpeg not installed
-            raise ExternalServiceError(
-                f"ffmpeg binary not found: {self._ffmpeg}"
-            ) from exc
+            raise ExternalServiceError(f"ffmpeg binary not found: {self._ffmpeg}") from exc
         except OSError as exc:
             raise ExternalServiceError(f"failed to invoke ffmpeg: {exc}") from exc
 
         if process.returncode != 0:
             self._cleanup_partial(payload.output_path)
             tail = stderr.decode("utf-8", errors="replace")[-2_000:]
-            raise ExternalServiceError(
-                f"ffmpeg exited with code {process.returncode}: {tail}"
-            )
+            raise ExternalServiceError(f"ffmpeg exited with code {process.returncode}: {tail}")
 
         if not payload.output_path.exists():
-            raise ExternalServiceError(
-                "ffmpeg reported success but output file is missing"
-            )
+            raise ExternalServiceError("ffmpeg reported success but output file is missing")
 
         return RenderResult(
             output_path=payload.output_path,
@@ -144,10 +139,7 @@ class FFmpegRenderer(Renderer):
         debuggable - no hidden state, just argv.
         """
         ordered_clips = [
-            clip
-            for track in payload.edl.timeline
-            if track.kind == "video"
-            for clip in track.clips
+            clip for track in payload.edl.timeline if track.kind == "video" for clip in track.clips
         ]
         if not ordered_clips:
             raise ExternalServiceError("EDL has no video clips to render")
@@ -159,9 +151,7 @@ class FFmpegRenderer(Renderer):
             ref = clip.clip
             source_path = payload.asset_paths.get(ref.asset_id)
             if source_path is None:
-                raise ExternalServiceError(
-                    f"render input missing asset {ref.asset_id}"
-                )
+                raise ExternalServiceError(f"render input missing asset {ref.asset_id}")
             length = max(ref.source_end_seconds - ref.source_start_seconds, 0.001)
             args.extend(
                 [
@@ -177,9 +167,7 @@ class FFmpegRenderer(Renderer):
         # filter_complex: concat the N inputs into one v/a stream pair.
         n = len(ordered_clips)
         concat_inputs = "".join(f"[{i}:v:0][{i}:a:0?]" for i in range(n))
-        filter_complex = (
-            f"{concat_inputs}concat=n={n}:v=1:a=1[outv][outa]"
-        )
+        filter_complex = f"{concat_inputs}concat=n={n}:v=1:a=1[outv][outa]"
         args.extend(
             [
                 "-filter_complex",
@@ -207,13 +195,13 @@ class FFmpegRenderer(Renderer):
 
     @staticmethod
     def _cleanup_partial(path: Path) -> None:
-        """Remove a half-written file so the caller never observes it."""
-        try:
+        """Remove a half-written file so the caller never observes it.
+
+        Best effort - if we can't remove it, the failure message
+        already tells the user something went wrong.
+        """
+        with contextlib.suppress(OSError):
             path.unlink(missing_ok=True)
-        except OSError:
-            # Best effort - if we can't remove it, the failure message
-            # already tells the user something went wrong.
-            pass
 
     def debug_command(self, payload: RenderInput) -> str:
         """Return a copy-pasteable shell version of the ffmpeg command.
@@ -230,8 +218,7 @@ def _expected_duration(edl: EditDecisionList) -> float:
         if track.kind != "video":
             continue
         track_total = sum(
-            max(c.clip.source_end_seconds - c.clip.source_start_seconds, 0.0)
-            for c in track.clips
+            max(c.clip.source_end_seconds - c.clip.source_start_seconds, 0.0) for c in track.clips
         )
         durations.append(track_total)
     return max(durations, default=0.0)

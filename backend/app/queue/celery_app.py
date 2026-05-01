@@ -1,8 +1,18 @@
 """Celery application factory.
 
-Tasks live in ``app.queue.tasks.*``; importing them here registers
-each one with the app. The factory builds a fresh app on every
-process start so the broker URL reflects the current ``Settings``.
+The Celery app is configured once per process; tasks register
+themselves against it via :func:`celery.shared_task` so this module
+and ``app.queue.tasks.*`` are not coupled by an import cycle.
+
+Two lifecycles to keep in mind:
+
+- **Worker process** (``celery -A app.queue.celery_app:celery_app
+  worker``) — Celery reads the ``imports`` config and imports each
+  task module at startup, registering every ``@shared_task``.
+- **API process** — when :class:`CeleryRenderEnqueuer.enqueue` calls
+  ``.delay()`` it imports the task module on demand. With
+  ``task_always_eager=True`` (default for ``make dev`` and tests)
+  the call runs the task in-process.
 
 Eager mode:
 
@@ -17,6 +27,11 @@ from __future__ import annotations
 from celery import Celery
 
 from app.core.config import Settings, get_settings
+
+# Modules under this list are imported by Celery at worker startup so
+# every ``@shared_task`` decorated function is registered with the app.
+# Keep it in sync with new task modules.
+TASK_MODULES = ["app.queue.tasks.render"]
 
 
 def create_celery_app(settings: Settings | None = None) -> Celery:
@@ -33,6 +48,7 @@ def create_celery_app(settings: Settings | None = None) -> Celery:
         backend=settings.redis_url,
     )
     app.conf.update(
+        imports=TASK_MODULES,
         task_always_eager=settings.celery_eager,
         task_eager_propagates=True,
         task_serializer="json",
@@ -41,10 +57,6 @@ def create_celery_app(settings: Settings | None = None) -> Celery:
         timezone="UTC",
         enable_utc=True,
     )
-    # Side-effect import: registers tasks with the app. We import here
-    # rather than at module top to avoid a cycle with the app object.
-    from app.queue.tasks import render as _render_tasks  # noqa: F401
-
     return app
 
 

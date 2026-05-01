@@ -48,5 +48,5 @@ async def health_check(engine: AsyncEngine) -> None:
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
-    except Exception as exc:  # noqa: BLE001 - we re-raise as a domain error
+    except Exception as exc:
         raise ExternalServiceError(f"database unreachable: {exc}") from exc

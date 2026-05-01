@@ -138,9 +138,7 @@ class InMemoryObjectStore(ObjectStore):
         body = data.read()
         self._objects[(bucket, key)] = body
         self._content_types[(bucket, key)] = content_type
-        return StoredObject(
-            bucket=bucket, key=key, size_bytes=len(body), content_type=content_type
-        )
+        return StoredObject(bucket=bucket, key=key, size_bytes=len(body), content_type=content_type)
 
     async def get(self, bucket: str, key: str) -> bytes:
         try:
@@ -180,7 +178,7 @@ class FakeSession:
         self.status: SessionStatus = SessionStatus.ACTIVE
         self.created_at = now
         self.updated_at = now
-        self.messages: list["FakeMessage"] = []
+        self.messages: list[FakeMessage] = []
 
 
 class FakeMessage:
@@ -315,9 +313,7 @@ class FakeEdlVersionRepository:
 
 
 class FakeRenderJob:
-    def __init__(
-        self, *, project_id: UUID, edl_version_id: UUID
-    ) -> None:
+    def __init__(self, *, project_id: UUID, edl_version_id: UUID) -> None:
         now = datetime.now(UTC)
         self.id: UUID = uuid4()
         self.project_id = project_id
@@ -334,9 +330,7 @@ class FakeRenderJobRepository:
     def __init__(self) -> None:
         self._rows: dict[UUID, FakeRenderJob] = {}
 
-    async def create(
-        self, *, project_id: UUID, edl_version_id: UUID
-    ) -> FakeRenderJob:
+    async def create(self, *, project_id: UUID, edl_version_id: UUID) -> FakeRenderJob:
         job = FakeRenderJob(project_id=project_id, edl_version_id=edl_version_id)
         self._rows[job.id] = job
         return job
@@ -362,9 +356,7 @@ class FakeRenderJobRepository:
         job.error_message = None
         return job
 
-    async def mark_failed(
-        self, job_id: UUID, *, error_message: str
-    ) -> FakeRenderJob:
+    async def mark_failed(self, job_id: UUID, *, error_message: str) -> FakeRenderJob:
         job = await self.get(job_id)
         job.status = JobStatus.FAILED
         job.error_message = error_message
@@ -382,10 +374,16 @@ class FakeRenderJobRepository:
 
 
 class ScriptedLLM(LLMClient):
-    """Returns canned replies in order; records every call."""
+    """Returns canned replies in order; records every call.
+
+    Stores the caller's ``replies`` list **by reference**, not a copy.
+    Route-level fixtures construct the LLM at fixture build time and
+    let individual tests append replies later — sharing the reference
+    means those late appends are visible.
+    """
 
     def __init__(self, replies: list[str]) -> None:
-        self.replies = list(replies)
+        self.replies = replies
         self.calls: list[dict[str, object]] = []
 
     async def complete(

@@ -20,7 +20,6 @@ from app.core.config import Settings
 from app.db.enums import AssetStatus
 from app.main import create_app
 from app.pipeline.probe import StubProbe
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeProjectRepository,
@@ -118,9 +117,7 @@ async def _seed_asset(deps, settings: Settings):
     return project, asset
 
 
-def test_plan_edit_returns_edl_for_known_project_with_assets(
-    app_client: TestClient, deps
-) -> None:
+def test_plan_edit_returns_edl_for_known_project_with_assets(app_client: TestClient, deps) -> None:
     import asyncio
 
     settings = Settings(environment="test")
@@ -164,9 +161,7 @@ def test_plan_edit_404s_for_unknown_project(app_client: TestClient) -> None:
     assert response.status_code == 404
 
 
-def test_plan_edit_422s_when_project_has_no_assets(
-    app_client: TestClient, deps
-) -> None:
+def test_plan_edit_422s_when_project_has_no_assets(app_client: TestClient, deps) -> None:
     import asyncio
 
     projects, _, _ = deps

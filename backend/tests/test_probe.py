@@ -113,9 +113,7 @@ async def test_ffprobe_translates_missing_binary_into_external_service_error(
     fake_file.write_bytes(b"\x00")
 
     with pytest.raises(ExternalServiceError):
-        await FFprobeProbe(ffprobe_binary="ffprobe-does-not-exist-xyz").probe(
-            fake_file
-        )
+        await FFprobeProbe(ffprobe_binary="ffprobe-does-not-exist-xyz").probe(fake_file)
 
 
 async def test_ffprobe_raises_when_path_missing() -> None:

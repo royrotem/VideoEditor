@@ -20,13 +20,15 @@ from uuid import UUID
 
 from sqlalchemy import (
     BigInteger,
-    Enum as SAEnum,
     ForeignKey,
     Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
+)
+from sqlalchemy import (
+    Enum as SAEnum,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,16 +50,16 @@ class Project(Base, UUIDPKMixin, TimestampMixin):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text(), nullable=True)
 
-    assets: Mapped[list["Asset"]] = relationship(
+    assets: Mapped[list[Asset]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
-    sessions: Mapped[list["Session"]] = relationship(
+    sessions: Mapped[list[Session]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
-    edl_versions: Mapped[list["EdlVersion"]] = relationship(
+    edl_versions: Mapped[list[EdlVersion]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
-    render_jobs: Mapped[list["RenderJob"]] = relationship(
+    render_jobs: Mapped[list[RenderJob]] = relationship(
         back_populates="project", cascade="all, delete-orphan"
     )
 
@@ -110,7 +112,7 @@ class Session(Base, UUIDPKMixin, TimestampMixin):
     )
 
     project: Mapped[Project] = relationship(back_populates="sessions")
-    messages: Mapped[list["Message"]] = relationship(
+    messages: Mapped[list[Message]] = relationship(
         back_populates="session",
         cascade="all, delete-orphan",
         order_by="Message.created_at",
@@ -163,9 +165,7 @@ class EdlVersion(Base, UUIDPKMixin, TimestampMixin):
     project: Mapped[Project] = relationship(back_populates="edl_versions")
 
     __table_args__ = (
-        UniqueConstraint(
-            "project_id", "version_number", name="uq_edl_versions_project_version"
-        ),
+        UniqueConstraint("project_id", "version_number", name="uq_edl_versions_project_version"),
     )
 
 

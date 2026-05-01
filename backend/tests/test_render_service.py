@@ -27,10 +27,9 @@ from app.agents.contracts import (
 from app.core.config import Settings
 from app.core.errors import ExternalServiceError, NotFoundError
 from app.db.enums import AssetStatus, JobStatus
-from app.pipeline.renderer import RenderInput, RenderResult, Renderer
+from app.pipeline.renderer import Renderer, RenderInput, RenderResult
 from app.services.render import RenderJobService
 from app.services.render_enqueuer import RecordingRenderEnqueuer
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeEdlVersionRepository,
@@ -152,9 +151,7 @@ def deps(settings: Settings):
 # --- submit ---------------------------------------------------------------
 
 
-async def test_submit_creates_pending_job_and_enqueues(
-    settings: Settings, deps
-) -> None:
+async def test_submit_creates_pending_job_and_enqueues(settings: Settings, deps) -> None:
     service, _renderer, projects, assets, edl_versions, _jobs, store, enqueuer = deps
     project, asset = await _seed_project_with_asset(
         settings=settings, projects=projects, assets=assets, store=store
@@ -182,9 +179,7 @@ async def test_submit_rejects_unknown_project(settings: Settings, deps) -> None:
     assert enqueuer.calls == []
 
 
-async def test_subsequent_submits_increment_edl_version(
-    settings: Settings, deps
-) -> None:
+async def test_subsequent_submits_increment_edl_version(settings: Settings, deps) -> None:
     service, _renderer, projects, assets, edl_versions, _jobs, store, _enqueuer = deps
     project, asset = await _seed_project_with_asset(
         settings=settings, projects=projects, assets=assets, store=store
@@ -220,9 +215,7 @@ async def test_execute_renders_and_uploads(settings: Settings, deps) -> None:
     assert asset.id in renderer.last_payload.asset_paths
 
 
-async def test_execute_marks_failed_on_validation_error(
-    settings: Settings, deps
-) -> None:
+async def test_execute_marks_failed_on_validation_error(settings: Settings, deps) -> None:
     service, _renderer, projects, assets, _edl_versions, _jobs, store, _enq = deps
     project, asset = await _seed_project_with_asset(
         settings=settings,
@@ -231,9 +224,7 @@ async def test_execute_marks_failed_on_validation_error(
         store=store,
         duration_seconds=1.0,
     )
-    pending = await service.submit(
-        project_id=project.id, edl=_edl_for_asset(asset.id)
-    )
+    pending = await service.submit(project_id=project.id, edl=_edl_for_asset(asset.id))
 
     job = await service.execute(pending.id)
 
@@ -264,9 +255,7 @@ async def test_execute_marks_failed_when_renderer_raises(
     project, asset = await _seed_project_with_asset(
         settings=settings, projects=projects, assets=assets, store=store
     )
-    pending = await service.submit(
-        project_id=project.id, edl=_edl_for_asset(asset.id)
-    )
+    pending = await service.submit(project_id=project.id, edl=_edl_for_asset(asset.id))
 
     job = await service.execute(pending.id)
 

@@ -35,9 +35,7 @@ def _edl(*clips: TimelineClip) -> EditDecisionList:
 
 def _clip(asset_id, start: float, end: float, timeline_start: float = 0.0):
     return TimelineClip(
-        clip=ClipReference(
-            asset_id=asset_id, source_start_seconds=start, source_end_seconds=end
-        ),
+        clip=ClipReference(asset_id=asset_id, source_start_seconds=start, source_end_seconds=end),
         timeline_start_seconds=timeline_start,
     )
 
@@ -92,9 +90,7 @@ def test_ffmpeg_command_includes_input_per_clip_and_concat_filter(
 def test_ffmpeg_command_rejects_missing_asset(tmp_path: Path) -> None:
     asset_id = uuid4()
     edl = _edl(_clip(asset_id, 0, 1))
-    payload = RenderInput(
-        edl=edl, asset_paths={}, output_path=tmp_path / "out.mp4"
-    )
+    payload = RenderInput(edl=edl, asset_paths={}, output_path=tmp_path / "out.mp4")
 
     with pytest.raises(ExternalServiceError, match="missing asset"):
         FFmpegRenderer().debug_command(payload)
@@ -107,9 +103,7 @@ def test_ffmpeg_command_rejects_empty_video_track(tmp_path: Path) -> None:
         audio=AudioPlan(),
         output=OutputSpec(),
     )
-    payload = RenderInput(
-        edl=edl, asset_paths={}, output_path=tmp_path / "out.mp4"
-    )
+    payload = RenderInput(edl=edl, asset_paths={}, output_path=tmp_path / "out.mp4")
 
     with pytest.raises(ExternalServiceError, match="no video clips"):
         FFmpegRenderer().debug_command(payload)

@@ -53,8 +53,6 @@ class AssetRepository:
 
     async def list_for_project(self, project_id: UUID) -> list[Asset]:
         result = await self._session.execute(
-            select(Asset)
-            .where(Asset.project_id == project_id)
-            .order_by(Asset.created_at.desc())
+            select(Asset).where(Asset.project_id == project_id).order_by(Asset.created_at.desc())
         )
         return list(result.scalars())
