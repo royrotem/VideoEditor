@@ -27,6 +27,7 @@ from app.api.sessions import router as sessions_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.engine import create_engine_and_sessionmaker, dispose_engine
+from app.pipeline.frame_extractor import FFmpegFrameExtractor
 from app.pipeline.probe import FFprobeProbe
 from app.pipeline.renderer import FFmpegRenderer
 from app.queue.redis_client import create_redis_client
@@ -63,6 +64,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.anthropic_client = anthropic_client
     app.state.llm_client = llm_client
     app.state.probe = FFprobeProbe()
+    app.state.frame_extractor = FFmpegFrameExtractor()
     app.state.renderer = FFmpegRenderer()
 
     try:

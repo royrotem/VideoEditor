@@ -138,3 +138,133 @@ async def test_analyze_raises_when_asset_does_not_exist(
 
     with pytest.raises(Exception):
         await service.analyze(uuid4())
+
+
+# --- vision pass ---------------------------------------------------------
+
+
+async def test_analyze_runs_vision_pass_when_extractor_and_llm_provided(
+    settings: Settings,
+) -> None:
+    from app.agents.client import LLMMessage, LLMResponse
+    from app.pipeline.frame_extractor import StubFrameExtractor
+
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(
+        settings=settings, projects=projects, assets=assets, store=store
+    )
+
+    captured: dict[str, object] = {}
+
+    class _RecordingLLM:
+        async def complete(
+            self,
+            *,
+            model: str,
+            system_prompt: str,
+            messages: list[LLMMessage],
+            max_tokens: int = 16000,
+            cache_system_prompt: bool = True,
+        ) -> LLMResponse:
+            captured["messages"] = messages
+            captured["model"] = model
+            return LLMResponse(
+                text=(
+                    '{"summary":"סיכום קצר",'
+                    '"shots":[{"start_seconds":0,"end_seconds":12,'
+                    '"description":"כל הסרטון","dominant_colors":[],'
+                    '"motion_intensity":0.3}]}'
+                ),
+            )
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=12.0),
+        object_store=store,
+        assets=assets,
+        frame_extractor=StubFrameExtractor(),
+        llm=_RecordingLLM(),  # type: ignore[arg-type]
+    )
+
+    updated = await service.analyze(asset.id)
+
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    assert updated.analysis["summary"] == "סיכום קצר"
+    shots = updated.analysis["shots"]
+    assert isinstance(shots, list) and len(shots) == 1
+    # Probe facts still present (vision merges on top, doesn't replace).
+    assert updated.analysis["duration_seconds"] == 12.0
+    # The LLM saw image blocks attached to the user message.
+    sent = captured["messages"]
+    assert isinstance(sent, list) and len(sent) == 1
+    assert len(sent[0].images) > 0
+
+
+async def test_vision_pass_skipped_silently_when_extractor_missing(
+    settings: Settings,
+) -> None:
+    """No frame extractor + no LLM = probe-only, no vision pass."""
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(
+        settings=settings, projects=projects, assets=assets, store=store
+    )
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=10.0),
+        object_store=store,
+        assets=assets,
+        # Both omitted => vision pass is skipped.
+    )
+    updated = await service.analyze(asset.id)
+
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    assert "summary" not in updated.analysis
+    assert "shots" not in updated.analysis
+
+
+async def test_vision_pass_failure_does_not_break_probe_facts(
+    settings: Settings,
+) -> None:
+    """Vision step that raises is logged, but the asset still becomes ready."""
+    from app.agents.client import LLMMessage, LLMResponse
+    from app.core.errors import ExternalServiceError
+    from app.pipeline.frame_extractor import StubFrameExtractor
+
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(
+        settings=settings, projects=projects, assets=assets, store=store
+    )
+
+    class _AngryLLM:
+        async def complete(
+            self,
+            *,
+            model: str,
+            system_prompt: str,
+            messages: list[LLMMessage],
+            max_tokens: int = 16000,
+            cache_system_prompt: bool = True,
+        ) -> LLMResponse:
+            raise ExternalServiceError("anthropic 500")
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=10.0),
+        object_store=store,
+        assets=assets,
+        frame_extractor=StubFrameExtractor(),
+        llm=_AngryLLM(),  # type: ignore[arg-type]
+    )
+    updated = await service.analyze(asset.id)
+
+    # Probe stage succeeded — asset is ready, vision keys absent.
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    assert updated.analysis["duration_seconds"] == 10.0
+    assert "summary" not in updated.analysis

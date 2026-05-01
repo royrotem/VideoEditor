@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.client import LLMClient
 from app.core.config import Settings
 from app.db.session import get_db_session
+from app.pipeline.frame_extractor import FrameExtractor
 from app.pipeline.probe import Probe
 from app.pipeline.renderer import Renderer
 from app.repositories.assets import AssetRepository
@@ -53,12 +54,18 @@ def get_renderer(request: Request) -> Renderer:
     return renderer
 
 
+def get_frame_extractor(request: Request) -> FrameExtractor:
+    extractor: FrameExtractor = request.app.state.frame_extractor
+    return extractor
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ObjectStoreDep = Annotated[ObjectStore, Depends(get_object_store)]
 LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
 ProbeDep = Annotated[Probe, Depends(get_probe)]
 RendererDep = Annotated[Renderer, Depends(get_renderer)]
+FrameExtractorDep = Annotated[FrameExtractor, Depends(get_frame_extractor)]
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -131,9 +138,15 @@ def get_asset_analysis_service(
     probe: ProbeDep,
     object_store: ObjectStoreDep,
     assets: AssetRepoDep,
+    frame_extractor: FrameExtractorDep,
+    llm: LLMClientDep,
 ) -> AssetAnalysisService:
     return AssetAnalysisService(
-        probe=probe, object_store=object_store, assets=assets
+        probe=probe,
+        object_store=object_store,
+        assets=assets,
+        frame_extractor=frame_extractor,
+        llm=llm,
     )
 
 
