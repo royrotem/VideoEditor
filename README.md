@@ -32,7 +32,13 @@ catalogue.
 6. **Refine** - request more changes in words, or edit manually
    (frontend tooling pending).
 
-## Prerequisites
+## Quick start
+
+> Step-by-step VS Code walkthrough lives in [`docs/RUNNING.md`](docs/RUNNING.md).
+> The Hebrew-friendly version of "open the project, install extensions,
+> press one button, see localhost". The condensed version is below.
+
+### Prerequisites
 
 You need these on your dev machine:
 
@@ -42,22 +48,31 @@ You need these on your dev machine:
 - `ffmpeg` and `ffprobe` (used by the probe + frame extractor + renderer)
 - An Anthropic API key for the chat / vision endpoints
 
-## One-command run
+### Two-command run
 
 ```bash
-make dev
+make setup    # one-time: prereq check + .env + infra + deps + migrations
+make dev      # daily: backend + frontend + infra
 ```
 
-Behind the scenes ([`scripts/dev.sh`](scripts/dev.sh)) this:
+Then open <http://localhost:3000>.
 
-1. copies `infra/.env.example` → `.env` if missing,
-2. brings up Postgres + Redis + MinIO via `docker compose`,
-3. waits for Postgres, applies Alembic migrations,
-4. starts the FastAPI backend on `:8000`,
-5. installs frontend deps and starts the Next.js dev server on `:3000`.
+`make setup` is idempotent and prompts for `ANTHROPIC_API_KEY` if it
+isn't already in `.env`. `make dev` keeps logs under `.dev-logs/` and
+shuts the dev servers down on <kbd>Ctrl-C</kbd> (infra stays up - run
+`make infra-down` to stop it).
 
-Logs live under `.dev-logs/`. Press <kbd>Ctrl-C</kbd> to stop the dev
-servers (infra stays up - run `make infra-down` to stop it).
+### VS Code
+
+Open the repo in VS Code, accept the recommended-extensions prompt,
+and you can run everything from the Command Palette:
+
+- **Tasks: Run Task** → *Setup (one-time)* / *Start dev* / *Run all tests*
+- **F5** (Run & Debug) → *Backend: uvicorn (debug)* with debugpy attached
+
+The full walkthrough — including troubleshooting and how the chat →
+brief → plan → render flow looks in the UI — is in
+[`docs/RUNNING.md`](docs/RUNNING.md).
 
 ## Smoke test
 

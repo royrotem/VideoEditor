@@ -98,12 +98,17 @@ VideoEditor/
 
 ## Local Development
 
-The fastest path is `make dev`, which runs `scripts/dev.sh`:
+The fastest path is two commands:
 
 ```bash
+make setup             # one-time: prereq check + .env + infra + deps + migrations
 make dev               # infra + migrations + backend + frontend, in one terminal
 make smoke             # end-to-end sanity check against a running stack
 ```
+
+[`docs/RUNNING.md`](docs/RUNNING.md) has the step-by-step VS Code
+walkthrough (recommended extensions, tasks, debugger configs, full
+chat → brief → render UX, troubleshooting).
 
 Individual targets (also documented in `make help`):
 

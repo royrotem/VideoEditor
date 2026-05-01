@@ -1,0 +1,79 @@
+{
+  // ---- Python -----------------------------------------------------------
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["backend/tests"],
+  "python.testing.cwd": "${workspaceFolder}/backend",
+
+  // Ruff handles imports and linting; black formats; mypy on save via the
+  // dedicated extension. The defaults below tell each extension where the
+  // backend's pyproject.toml lives so the same config used in CI / Make
+  // applies in the editor.
+  "ruff.path": ["${workspaceFolder}/backend/.venv/bin/ruff"],
+  "black-formatter.path": ["${workspaceFolder}/backend/.venv/bin/black"],
+  "mypy-type-checker.path": ["${workspaceFolder}/backend/.venv/bin/mypy"],
+  "mypy-type-checker.cwd": "${workspaceFolder}/backend",
+  "mypy-type-checker.args": ["app"],
+
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+
+  // ---- TypeScript / React ----------------------------------------------
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+
+  // Hide noisy generated paths from the file tree + search. Keep them on
+  // disk; just don't scroll past them all day.
+  "files.exclude": {
+    "**/.next": true,
+    "**/.pytest_cache": true,
+    "**/.mypy_cache": true,
+    "**/.ruff_cache": true,
+    "**/__pycache__": true,
+    "**/.dev-logs": true,
+    "**/htmlcov": true,
+    "**/.turbo": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/uv.lock": true,
+    "**/pnpm-lock.yaml": true
+  },
+
+  // Default rulers for prose / code line lengths.
+  "editor.rulers": [100],
+
+  // Tailwind's plugin needs a hint for the cn() helper.
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^'\"`]*)(?:'|\"|`)"]
+  ]
+}

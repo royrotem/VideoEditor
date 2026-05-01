@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup (one-time)",
+      "type": "shell",
+      "command": "make setup",
+      "detail": "Verify prerequisites, bootstrap .env, bring up infra, install deps, run migrations.",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "group": "none"
+    },
+    {
+      "label": "Start dev",
+      "type": "shell",
+      "command": "make dev",
+      "detail": "Bring up infra (docker compose) + backend (uvicorn) + frontend (next dev).",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Stop infrastructure",
+      "type": "shell",
+      "command": "make infra-down",
+      "detail": "Stop the docker-compose containers (data volumes are preserved).",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run all tests",
+      "type": "shell",
+      "command": "make test",
+      "detail": "Backend (pytest) + frontend (vitest) test suites.",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Backend: pytest",
+      "type": "shell",
+      "command": "uv run pytest",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Backend: ruff + black + mypy",
+      "type": "shell",
+      "command": "uv run ruff check . && uv run black --check . && uv run mypy app",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: vitest",
+      "type": "shell",
+      "command": "pnpm test",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "Frontend: typecheck + lint",
+      "type": "shell",
+      "command": "pnpm typecheck && pnpm lint",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Smoke test (against running stack)",
+      "type": "shell",
+      "command": "make smoke",
+      "detail": "End-to-end smoke: project → upload → chat (if API key) → render → playback URL.",
+      "problemMatcher": []
+    }
+  ]
+}

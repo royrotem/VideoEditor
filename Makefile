@@ -4,13 +4,14 @@
 # docker compose) so a contributor only needs to know one verb. See
 # README.md for the prose version.
 
-.PHONY: help infra-up infra-down infra-logs migrate \
+.PHONY: help setup infra-up infra-down infra-logs migrate \
         backend-install backend-run backend-worker backend-test backend-lint \
         frontend-install frontend-run frontend-test \
         dev test smoke clean
 
 help:
 	@echo "Common targets:"
+	@echo "  make setup             # one-time: prereq check + .env + infra + deps + migrations"
 	@echo "  make dev               # bring up infra + backend + frontend"
 	@echo "  make infra-up          # only Postgres + Redis + MinIO"
 	@echo "  make infra-down        # stop containers (data preserved)"
@@ -70,6 +71,9 @@ frontend-test:
 	cd frontend && pnpm test
 
 # --- Composite -------------------------------------------------------------
+
+setup:
+	./scripts/setup.sh
 
 dev:
 	./scripts/dev.sh
