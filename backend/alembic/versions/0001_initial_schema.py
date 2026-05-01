@@ -9,25 +9,21 @@ Create Date: 2026-05-01
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Union
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0001_initial_schema"
-down_revision: Union[str, None] = None
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+from alembic import op
 
-ASSET_STATUS = sa.Enum(
-    "uploaded", "analyzing", "ready", "failed", name="asset_status"
-)
+revision: str = "0001_initial_schema"
+down_revision: str | None = None
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+ASSET_STATUS = sa.Enum("uploaded", "analyzing", "ready", "failed", name="asset_status")
 SESSION_STATUS = sa.Enum("active", "closed", name="session_status")
 MESSAGE_ROLE = sa.Enum("user", "agent", "system", name="message_role")
-JOB_STATUS = sa.Enum(
-    "pending", "running", "succeeded", "failed", "cancelled", name="job_status"
-)
+JOB_STATUS = sa.Enum("pending", "running", "succeeded", "failed", "cancelled", name="job_status")
 
 
 def upgrade() -> None:

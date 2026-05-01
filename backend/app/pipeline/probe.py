@@ -121,24 +121,18 @@ class FFprobeProbe(Probe):
             )
             stdout, stderr = await process.communicate()
         except FileNotFoundError as exc:
-            raise ExternalServiceError(
-                f"ffprobe binary not found: {self._ffprobe}"
-            ) from exc
+            raise ExternalServiceError(f"ffprobe binary not found: {self._ffprobe}") from exc
         except OSError as exc:
             raise ExternalServiceError(f"failed to invoke ffprobe: {exc}") from exc
 
         if process.returncode != 0:
             tail = stderr.decode("utf-8", errors="replace")[-2_000:]
-            raise ExternalServiceError(
-                f"ffprobe exited with code {process.returncode}: {tail}"
-            )
+            raise ExternalServiceError(f"ffprobe exited with code {process.returncode}: {tail}")
 
         try:
             payload = json.loads(stdout)
         except json.JSONDecodeError as exc:
-            raise ExternalServiceError(
-                f"ffprobe returned invalid JSON: {exc}"
-            ) from exc
+            raise ExternalServiceError(f"ffprobe returned invalid JSON: {exc}") from exc
 
         return _parse_ffprobe_payload(payload)
 
@@ -186,16 +180,21 @@ def _coerce_float(value: object) -> float | None:
     """Best-effort float conversion that tolerates ``None`` / strings."""
     if value is None:
         return None
+    if not isinstance(value, str | int | float):
+        return None
     try:
-        return float(value)  # type: ignore[arg-type]
+        return float(value)
     except (TypeError, ValueError):
         return None
 
 
 def _coerce_int(value: object) -> int | None:
+    """Best-effort int conversion; mirrors :func:`_coerce_float`."""
     if value is None:
         return None
+    if not isinstance(value, str | int | float):
+        return None
     try:
-        return int(value)  # type: ignore[arg-type]
+        return int(value)
     except (TypeError, ValueError):
         return None

@@ -34,7 +34,5 @@ class ProjectRepository:
         return project
 
     async def list_all(self) -> list[Project]:
-        result = await self._session.execute(
-            select(Project).order_by(Project.created_at.desc())
-        )
+        result = await self._session.execute(select(Project).order_by(Project.created_at.desc()))
         return list(result.scalars())

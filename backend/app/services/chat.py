@@ -7,6 +7,7 @@ service so HTTP handlers stay thin.
 
 from __future__ import annotations
 
+from typing import Literal
 from uuid import UUID
 
 from app.agents.brief_extractor import (
@@ -43,7 +44,9 @@ class ChatService:
         self._sessions = sessions
         self._messages = messages
 
-    async def start_session(self, *, project_id: UUID, brief: str) -> tuple[Session, Message, Message]:
+    async def start_session(
+        self, *, project_id: UUID, brief: str
+    ) -> tuple[Session, Message, Message]:
         """Open a new chat session and run the Director's first reply.
 
         Returns ``(session, opening_user_message, assistant_message)``.
@@ -58,9 +61,7 @@ class ChatService:
         chat_session = await self._sessions.create(project_id=project_id)
 
         asset_facts = await self._collect_asset_facts(project_id)
-        opening = CreativeDirector.build_opening_user_message(
-            brief=brief, asset_facts=asset_facts
-        )
+        opening = CreativeDirector.build_opening_user_message(brief=brief, asset_facts=asset_facts)
 
         user_message = await self._messages.append(
             session_id=chat_session.id,
@@ -78,9 +79,7 @@ class ChatService:
         )
         return chat_session, user_message, assistant_message
 
-    async def send_turn(
-        self, *, session_id: UUID, content: str
-    ) -> tuple[Message, Message, bool]:
+    async def send_turn(self, *, session_id: UUID, content: str) -> tuple[Message, Message, bool]:
         """Append a user turn, get the Director's reply, persist both.
 
         Returns ``(user_message, assistant_message, converged)``. The
@@ -124,9 +123,7 @@ class ChatService:
         chat_session = await self._sessions.get_with_messages(session_id)
         transcript = ConversationTranscript(
             turns=[
-                LLMMessageDict(
-                    role=_role_for_llm(m.role), content=m.content
-                )
+                LLMMessageDict(role=_role_for_llm(m.role), content=m.content)
                 for m in chat_session.messages
             ]
         )
@@ -156,12 +153,12 @@ class ChatService:
             analysis = asset.analysis or {}
             try:
                 facts.append(AssetFacts.model_validate({**analysis, "asset_id": asset.id}))
-            except Exception:  # noqa: BLE001 - bad analysis JSON shouldn't break chat
+            except Exception:
                 facts.append(AssetFacts(asset_id=asset.id, duration_seconds=0))
         return facts
 
 
-def _role_for_llm(role: MessageRole) -> str:
+def _role_for_llm(role: MessageRole) -> Literal["user", "assistant"]:
     """Map persistent message roles onto the user/assistant the LLM expects."""
     if role is MessageRole.USER:
         return "user"

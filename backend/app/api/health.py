@@ -91,7 +91,7 @@ async def _probe(name: str, probe, errors: dict[str, str]) -> str:  # type: igno
         log.warning("health.dependency_down", name=name, error=str(exc))
         errors[name] = exc.message
         return "down"
-    except Exception as exc:  # noqa: BLE001 - unexpected, surface but don't crash
+    except Exception as exc:
         log.exception("health.dependency_error", name=name)
         errors[name] = str(exc)
         return "down"

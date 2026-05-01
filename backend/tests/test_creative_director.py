@@ -64,9 +64,7 @@ async def test_creative_director_opening_message_includes_brief_and_facts() -> N
 
 
 async def test_creative_director_opening_message_handles_no_assets() -> None:
-    opening = CreativeDirector.build_opening_user_message(
-        brief="רעיון ראשוני", asset_facts=[]
-    )
+    opening = CreativeDirector.build_opening_user_message(brief="רעיון ראשוני", asset_facts=[])
 
     assert "ASSET_FACTS:\n[]" in opening.content
 
@@ -75,9 +73,7 @@ async def test_creative_director_reply_uses_opus_4_7() -> None:
     llm = _RecordingLLM(["יש לי שתי הצעות..."])
     agent = CreativeDirector(llm)
 
-    reply = await agent.reply(
-        [LLMMessage(role="user", content="היי, רוצה משהו קצר ואנרגטי")]
-    )
+    reply = await agent.reply([LLMMessage(role="user", content="היי, רוצה משהו קצר ואנרגטי")])
 
     assert reply == "יש לי שתי הצעות..."
     assert llm.last_call is not None

@@ -122,9 +122,7 @@ class FFmpegFrameExtractor(FrameExtractor):
         finally:
             shutil.rmtree(scratch, ignore_errors=True)
 
-    async def _extract_one(
-        self, path: Path, timestamp_seconds: float, output: Path
-    ) -> bytes:
+    async def _extract_one(self, path: Path, timestamp_seconds: float, output: Path) -> bytes:
         # ``-ss`` before ``-i`` is the fast input seek; one output
         # frame; rescale to keep the payload small.
         args = [
@@ -152,9 +150,7 @@ class FFmpegFrameExtractor(FrameExtractor):
             )
             _stdout, stderr = await process.communicate()
         except FileNotFoundError as exc:
-            raise ExternalServiceError(
-                f"ffmpeg binary not found: {self._ffmpeg}"
-            ) from exc
+            raise ExternalServiceError(f"ffmpeg binary not found: {self._ffmpeg}") from exc
         except OSError as exc:
             raise ExternalServiceError(f"failed to invoke ffmpeg: {exc}") from exc
 
@@ -165,9 +161,7 @@ class FFmpegFrameExtractor(FrameExtractor):
                 f"frame at {timestamp_seconds:.2f}s: {tail}"
             )
         if not output.exists():
-            raise ExternalServiceError(
-                f"ffmpeg produced no frame at {timestamp_seconds:.2f}s"
-            )
+            raise ExternalServiceError(f"ffmpeg produced no frame at {timestamp_seconds:.2f}s")
         return output.read_bytes()
 
 

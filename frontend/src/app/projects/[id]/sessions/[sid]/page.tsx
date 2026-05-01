@@ -135,7 +135,7 @@ export default function ChatPage({ params }: { params: Params }) {
         <h1 className="text-2xl font-bold tracking-tight">שיחה עם הבמאי</h1>
         <p className="text-sm text-neutral-400">
           הבמאי יציע 2-3 כיוונים בכל תור. כשמסכימים, הוא יסיים בהודעה
-          שמתחילה ב-"סיכום:". אחר כך אפשר לגזור brief ולהפיק רנדר.
+          שמתחילה ב‑&quot;סיכום:&quot;. אחר כך אפשר לגזור brief ולהפיק רנדר.
         </p>
       </header>
 
@@ -187,7 +187,7 @@ export default function ChatPage({ params }: { params: Params }) {
               {edl && (
                 <>
                   <Alert tone="info">
-                    תוכנית עריכה מוכנה. הקליקו על "הפק רנדר" כדי לבצע אותה.
+                    תוכנית עריכה מוכנה. הקליקו על &quot;הפק רנדר&quot; כדי לבצע אותה.
                   </Alert>
                   {planError && <Alert>{planError}</Alert>}
                   <Button onClick={handleSubmitRender} loading={rendering}>

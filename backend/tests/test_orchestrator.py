@@ -90,9 +90,7 @@ async def test_analyze_asset_routes_to_vision_analyzer(
 
 
 async def test_plan_edit_returns_versioned_edl(orchestrator: Orchestrator) -> None:
-    brief = BriefPlan(
-        title="ערב חתונה", intent="סיכום קצר ומרגש", target_duration_seconds=60
-    )
+    brief = BriefPlan(title="ערב חתונה", intent="סיכום קצר ומרגש", target_duration_seconds=60)
 
     edl = await orchestrator.plan_edit(brief=brief, asset_facts=[])
 
@@ -101,9 +99,7 @@ async def test_plan_edit_returns_versioned_edl(orchestrator: Orchestrator) -> No
 
 
 async def test_review_edl_returns_qa_report(orchestrator: Orchestrator) -> None:
-    brief = BriefPlan(
-        title="t", intent="i", target_duration_seconds=60
-    )
+    brief = BriefPlan(title="t", intent="i", target_duration_seconds=60)
     edl = EditDecisionList(version=1, timeline=[Track(clips=[])])
 
     report = await orchestrator.review_edl(brief=brief, edl=edl)

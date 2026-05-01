@@ -73,9 +73,7 @@ async def get_render_output_url(
     service: RenderServiceDep,
     object_store: ObjectStoreDep,
     job_id: UUID = Path(...),
-    ttl_seconds: int = Query(
-        default=DEFAULT_OUTPUT_TTL_SECONDS, ge=60, le=86_400
-    ),
+    ttl_seconds: int = Query(default=DEFAULT_OUTPUT_TTL_SECONDS, ge=60, le=86_400),
 ) -> RenderOutputUrl:
     """Return a short-lived URL the client can stream the render from.
 
@@ -86,9 +84,7 @@ async def get_render_output_url(
     if job.output_bucket is None or job.output_key is None:
         from app.core.errors import NotFoundError
 
-        raise NotFoundError(
-            f"render job {job_id} has no output (status={job.status})"
-        )
+        raise NotFoundError(f"render job {job_id} has no output (status={job.status})")
     url = await object_store.presigned_get_url(
         job.output_bucket, job.output_key, ttl_seconds=ttl_seconds
     )

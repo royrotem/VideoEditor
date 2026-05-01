@@ -25,7 +25,17 @@ def test_factory_disables_eager_when_settings_say_so() -> None:
 
 
 def test_render_task_is_registered() -> None:
+    """``render.run`` binds to whichever Celery app is current.
+
+    Importing the tasks module registers the ``@shared_task`` against
+    every existing Celery app. The factory itself does not import
+    tasks - Celery's worker startup does that via the ``imports``
+    config - so we trigger the registration explicitly in the test.
+    """
+    import app.queue.tasks.render
+
     app = create_celery_app(Settings(environment="test"))
-    # The register-on-import side effect runs when the factory imports
-    # the tasks module; the canonical name is ``render.run``.
     assert "render.run" in app.tasks
+    # The factory also advertises the module so a real worker process
+    # imports it at startup.
+    assert "app.queue.tasks.render" in app.conf.imports

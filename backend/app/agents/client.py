@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import base64
 from dataclasses import dataclass, field
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from anthropic import AsyncAnthropic
 
@@ -33,9 +33,7 @@ class ImageBlock:
     """
 
     data: bytes
-    media_type: Literal["image/jpeg", "image/png", "image/gif", "image/webp"] = (
-        "image/jpeg"
-    )
+    media_type: Literal["image/jpeg", "image/png", "image/gif", "image/webp"] = "image/jpeg"
 
 
 @dataclass(slots=True)
@@ -111,11 +109,7 @@ class AnthropicLLMClient(LLMClient):
             {
                 "type": "text",
                 "text": system_prompt,
-                **(
-                    {"cache_control": {"type": "ephemeral"}}
-                    if cache_system_prompt
-                    else {}
-                ),
+                **({"cache_control": {"type": "ephemeral"}} if cache_system_prompt else {}),
             }
         ]
 
@@ -123,15 +117,18 @@ class AnthropicLLMClient(LLMClient):
 
         try:
             # Stream so high max_tokens cannot trip the SDK's HTTP timeout.
+            # The SDK's typed signature wants ``Iterable[TextBlockParam]`` /
+            # ``Iterable[MessageParam]``; we hand it the same JSON shape it
+            # expects on the wire and cast to keep mypy strict elsewhere.
             async with self._client.messages.stream(
                 model=model,
                 max_tokens=max_tokens,
-                system=system_blocks,
+                system=cast("Any", system_blocks),
                 thinking={"type": "adaptive"},
-                messages=wire_messages,
+                messages=cast("Any", wire_messages),
             ) as stream:
                 final = await stream.get_final_message()
-        except Exception as exc:  # noqa: BLE001 - re-wrap as a domain error
+        except Exception as exc:
             raise ExternalServiceError(f"anthropic call failed: {exc}") from exc
 
         text_parts = [block.text for block in final.content if block.type == "text"]
@@ -139,14 +136,8 @@ class AnthropicLLMClient(LLMClient):
             text="".join(text_parts),
             input_tokens=final.usage.input_tokens,
             output_tokens=final.usage.output_tokens,
-            cache_read_input_tokens=getattr(
-                final.usage, "cache_read_input_tokens", 0
-            )
-            or 0,
-            cache_creation_input_tokens=getattr(
-                final.usage, "cache_creation_input_tokens", 0
-            )
-            or 0,
+            cache_read_input_tokens=getattr(final.usage, "cache_read_input_tokens", 0) or 0,
+            cache_creation_input_tokens=getattr(final.usage, "cache_creation_input_tokens", 0) or 0,
         )
 
 

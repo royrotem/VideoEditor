@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -31,10 +30,9 @@ from app.core.config import Settings
 from app.db.enums import AssetStatus
 from app.main import create_app
 from app.pipeline.probe import StubProbe
-from app.pipeline.renderer import RenderInput, RenderResult, Renderer
+from app.pipeline.renderer import Renderer, RenderInput, RenderResult
 from app.services.render import RenderJobService
 from app.services.render_enqueuer import ImmediateRenderEnqueuer
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeEdlVersionRepository,
@@ -126,7 +124,9 @@ async def _seed_project_with_asset(
         analysis={"duration_seconds": 30.0},
     )
     await store.put(
-        asset.s3_bucket, asset.s3_key, make_upload_buffer(b"\x00\x01\x02\x03"),
+        asset.s3_bucket,
+        asset.s3_key,
+        make_upload_buffer(b"\x00\x01\x02\x03"),
         content_type="video/mp4",
     )
     return project, asset
@@ -161,9 +161,7 @@ def test_submit_render_returns_succeeded_job(app_client: TestClient, fakes) -> N
     projects, assets, _edl_versions, _render_jobs, store, _renderer = fakes
     import asyncio
 
-    project, asset = asyncio.run(
-        _seed_project_with_asset(settings, projects, assets, store)
-    )
+    project, asset = asyncio.run(_seed_project_with_asset(settings, projects, assets, store))
 
     response = app_client.post(
         f"/projects/{project.id}/render",
@@ -180,8 +178,7 @@ def test_submit_render_returns_succeeded_job(app_client: TestClient, fakes) -> N
 def test_submit_render_returns_failed_job_when_validation_fails(
     app_client: TestClient, fakes
 ) -> None:
-    settings = Settings(environment="test")
-    projects, assets, _edl_versions, _render_jobs, store, _renderer = fakes
+    projects, _assets, _edl_versions, _render_jobs, _store, _renderer = fakes
     import asyncio
 
     project = asyncio.run(projects.create(name="p", description=None))
@@ -202,9 +199,7 @@ def test_get_render_job_returns_known_job(app_client: TestClient, fakes) -> None
     projects, assets, _edl_versions, _render_jobs, store, _renderer = fakes
     import asyncio
 
-    project, asset = asyncio.run(
-        _seed_project_with_asset(settings, projects, assets, store)
-    )
+    project, asset = asyncio.run(_seed_project_with_asset(settings, projects, assets, store))
     submitted = app_client.post(
         f"/projects/{project.id}/render",
         json={"edl": _edl_for_asset(asset.id)},
@@ -216,16 +211,12 @@ def test_get_render_job_returns_known_job(app_client: TestClient, fakes) -> None
     assert response.json()["id"] == submitted["id"]
 
 
-def test_list_render_jobs_returns_jobs_for_project(
-    app_client: TestClient, fakes
-) -> None:
+def test_list_render_jobs_returns_jobs_for_project(app_client: TestClient, fakes) -> None:
     settings = Settings(environment="test")
     projects, assets, _edl_versions, _render_jobs, store, _renderer = fakes
     import asyncio
 
-    project, asset = asyncio.run(
-        _seed_project_with_asset(settings, projects, assets, store)
-    )
+    project, asset = asyncio.run(_seed_project_with_asset(settings, projects, assets, store))
     app_client.post(
         f"/projects/{project.id}/render",
         json={"edl": _edl_for_asset(asset.id, version=1)},
@@ -241,16 +232,12 @@ def test_list_render_jobs_returns_jobs_for_project(
     assert len(response.json()) == 2
 
 
-def test_output_url_returns_presigned_url_for_succeeded_job(
-    app_client: TestClient, fakes
-) -> None:
+def test_output_url_returns_presigned_url_for_succeeded_job(app_client: TestClient, fakes) -> None:
     settings = Settings(environment="test")
     projects, assets, _edl_versions, _render_jobs, store, _renderer = fakes
     import asyncio
 
-    project, asset = asyncio.run(
-        _seed_project_with_asset(settings, projects, assets, store)
-    )
+    project, asset = asyncio.run(_seed_project_with_asset(settings, projects, assets, store))
     submitted = app_client.post(
         f"/projects/{project.id}/render",
         json={"edl": _edl_for_asset(asset.id)},
@@ -264,10 +251,7 @@ def test_output_url_returns_presigned_url_for_succeeded_job(
     assert body["ttl_seconds"] == 3600
 
 
-def test_output_url_404s_when_job_has_no_output(
-    app_client: TestClient, fakes
-) -> None:
-    settings = Settings(environment="test")
+def test_output_url_404s_when_job_has_no_output(app_client: TestClient, fakes) -> None:
     projects, _assets, _edl_versions, _render_jobs, _store, _renderer = fakes
     import asyncio
 

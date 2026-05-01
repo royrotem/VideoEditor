@@ -8,8 +8,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.agents.client import ImageBlock, LLMClient, LLMMessage, LLMResponse
-from app.agents.client import _render_message
+from app.agents.client import ImageBlock, LLMClient, LLMMessage, LLMResponse, _render_message
 from app.agents.contracts import AssetFacts
 from app.agents.registry import get_registry
 from app.agents.vision_analyzer import (

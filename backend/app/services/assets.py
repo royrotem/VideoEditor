@@ -55,9 +55,7 @@ class AssetService:
         bucket = self._settings.s3_bucket_assets
         key = self._build_object_key(project_id, filename)
 
-        stored = await self._object_store.put(
-            bucket, key, data, content_type=content_type
-        )
+        stored = await self._object_store.put(bucket, key, data, content_type=content_type)
 
         return await self._assets.create(
             project_id=project_id,

@@ -8,15 +8,17 @@ handlers, and the API routers. Run with::
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
+from anthropic import AsyncAnthropic
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import app.agents  # noqa: F401 - populates the agent registry
-from anthropic import AsyncAnthropic
-
+# Side-effect import: registers every concrete agent on the global
+# registry. Aliased so the local ``app`` variable below (the FastAPI
+# instance) does not shadow the package and confuse type checkers.
+from app import agents as _agents_pkg  # noqa: F401
 from app.agents.client import AnthropicLLMClient
 from app.api.assets import router as assets_router
 from app.api.errors import register_error_handlers

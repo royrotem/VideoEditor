@@ -56,9 +56,7 @@ class BriefPlan(BaseModel):
     """The Creative Director's approved plan, handed to the Planner."""
 
     title: str
-    intent: str = Field(
-        description="One paragraph in Hebrew describing the edited video"
-    )
+    intent: str = Field(description="One paragraph in Hebrew describing the edited video")
     target_duration_seconds: float = Field(gt=0)
     style_notes: list[str] = Field(default_factory=list)
     music_direction: str | None = None

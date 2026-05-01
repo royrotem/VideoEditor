@@ -33,9 +33,7 @@ class SessionRepository:
 
     async def get_with_messages(self, session_id: UUID) -> Session:
         result = await self._db.execute(
-            select(Session)
-            .where(Session.id == session_id)
-            .options(selectinload(Session.messages))
+            select(Session).where(Session.id == session_id).options(selectinload(Session.messages))
         )
         chat = result.scalar_one_or_none()
         if chat is None:

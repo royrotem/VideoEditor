@@ -46,7 +46,13 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
-ignore = ["E501"]  # line length handled by black
+ignore = [
+    "E501",   # line length handled by black
+    "RUF001", # ambiguous-unicode-character — our prompts are intentionally Hebrew
+    "RUF002", # ambiguous unicode in docstrings — same reason
+    "RUF003", # ambiguous unicode in comments — same reason
+    "B008",   # function-call-in-default-arg: canonical FastAPI Path/File/Query pattern
+]
 
 [tool.black]
 line-length = 100
@@ -57,6 +63,26 @@ python_version = "3.11"
 strict = true
 plugins = ["pydantic.mypy"]
 exclude = ["tests/", "alembic/"]
+
+[[tool.mypy.overrides]]
+# Celery does not ship type stubs and ``@shared_task`` erases the
+# wrapped function's signature. Skip strict-decorator checks on the
+# tasks package so the rest of the code stays under strict mode
+# without a per-call ``# type: ignore`` rash.
+module = ["celery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.queue.tasks.*"]
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# boto3's ``BaseClient`` exposes service methods dynamically; without
+# the (heavy, optional) ``boto3-stubs[s3]`` extra mypy reports every
+# call as ``attr-defined``. Allow that on the storage adapter only -
+# the rest of the codebase still benefits from strict mode.
+module = ["app.storage.s3"]
+disable_error_code = ["attr-defined"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

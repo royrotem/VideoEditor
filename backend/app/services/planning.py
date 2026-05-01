@@ -61,9 +61,7 @@ class PlanningService:
         asset_rows = await self._assets.list_for_project(project_id)
         asset_facts = [_to_asset_facts(asset) for asset in asset_rows]
         if not asset_facts:
-            raise ValidationError(
-                "project has no analysed assets to plan against"
-            )
+            raise ValidationError("project has no analysed assets to plan against")
 
         orchestrator = Orchestrator(registry=self._registry, llm=self._llm)
         edl = await orchestrator.plan_edit(

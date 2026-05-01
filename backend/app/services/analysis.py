@@ -18,6 +18,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Literal, cast
 from uuid import UUID
 
 from app.agents.client import ImageBlock, LLMClient
@@ -120,11 +121,7 @@ class AssetAnalysisService:
         - any step raises - logged as a warning, but the deterministic
           half of the analysis is still stored.
         """
-        if (
-            self._frame_extractor is None
-            or self._llm is None
-            or probe_result.duration_seconds <= 0
-        ):
+        if self._frame_extractor is None or self._llm is None or probe_result.duration_seconds <= 0:
             return
 
         try:
@@ -175,8 +172,8 @@ class AssetAnalysisService:
 
 
 def _merge_probe_into_analysis(
-    existing: dict | None, result: ProbeResult
-) -> dict:
+    existing: dict[str, object] | None, result: ProbeResult
+) -> dict[str, object]:
     """Layer probe facts on top of any prior analysis.
 
     Future stages (Whisper transcription, deeper scene detection)
@@ -198,8 +195,8 @@ def _merge_probe_into_analysis(
 
 
 def _merge_vision_into_analysis(
-    existing: dict | None, output: VisionAnalysisOutput
-) -> dict:
+    existing: dict[str, object] | None, output: VisionAnalysisOutput
+) -> dict[str, object]:
     """Layer vision-agent facts on top of the probe-stage analysis."""
     merged: dict[str, object] = dict(existing or {})
     merged["summary"] = output.summary
@@ -207,7 +204,10 @@ def _merge_vision_into_analysis(
     return merged
 
 
-def _to_anthropic_media_type(media_type: str) -> str:
+_AnthropicImageMediaType = Literal["image/jpeg", "image/png", "image/gif", "image/webp"]
+
+
+def _to_anthropic_media_type(media_type: str) -> _AnthropicImageMediaType:
     """Coerce common media types to the literal Anthropic expects.
 
     The API accepts ``image/jpeg``, ``image/png``, ``image/gif``,
@@ -215,5 +215,5 @@ def _to_anthropic_media_type(media_type: str) -> str:
     ``image/jpeg`` since that is what FFmpegFrameExtractor produces.
     """
     if media_type in {"image/jpeg", "image/png", "image/gif", "image/webp"}:
-        return media_type
+        return cast(_AnthropicImageMediaType, media_type)
     return "image/jpeg"

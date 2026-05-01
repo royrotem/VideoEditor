@@ -18,7 +18,6 @@ from app.api.deps import (
 )
 from app.core.config import Settings
 from app.main import create_app
-
 from tests.fakes import (
     FakeAssetRepository,
     FakeMessageRepository,
@@ -79,9 +78,7 @@ def app_client(
 
 
 def _create_project(client: TestClient) -> str:
-    return client.post(
-        "/projects", json={"name": "p", "description": None}
-    ).json()["id"]
+    return client.post("/projects", json={"name": "p", "description": None}).json()["id"]
 
 
 def test_start_session_returns_director_reply(
@@ -118,9 +115,7 @@ def test_send_turn_marks_converged_when_director_summarises(
         json={"brief": "רעיון"},
     ).json()["session"]["id"]
 
-    response = app_client.post(
-        f"/sessions/{session_id}/messages", json={"content": "פופ עברי"}
-    )
+    response = app_client.post(f"/sessions/{session_id}/messages", json={"content": "פופ עברי"})
 
     assert response.status_code == 201
     body = response.json()
@@ -133,9 +128,9 @@ def test_list_messages_returns_chat_history_in_order(
 ) -> None:
     llm_replies.extend(["שלום!", "ועוד רעיון..."])
     project_id = _create_project(app_client)
-    session_id = app_client.post(
-        f"/projects/{project_id}/sessions", json={"brief": "x"}
-    ).json()["session"]["id"]
+    session_id = app_client.post(f"/projects/{project_id}/sessions", json={"brief": "x"}).json()[
+        "session"
+    ]["id"]
     app_client.post(f"/sessions/{session_id}/messages", json={"content": "תודה"})
 
     response = app_client.get(f"/sessions/{session_id}/messages")
@@ -165,9 +160,9 @@ def test_extract_brief_returns_structured_brief_plan(
         ]
     )
     project_id = _create_project(app_client)
-    session_id = app_client.post(
-        f"/projects/{project_id}/sessions", json={"brief": "x"}
-    ).json()["session"]["id"]
+    session_id = app_client.post(f"/projects/{project_id}/sessions", json={"brief": "x"}).json()[
+        "session"
+    ]["id"]
 
     response = app_client.post(f"/sessions/{session_id}/extract-brief")
 

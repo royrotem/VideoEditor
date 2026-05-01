@@ -7,6 +7,14 @@ are imported eagerly so that their ``@get_registry().register``
 decorators run on package import.
 """
 
+# Side-effect imports: each module decorates its agent class with
+# ``@get_registry().register`` at import time. Keeping the imports here
+# means the rest of the codebase only has to ``import app.agents`` to
+# populate the registry.
+from app.agents import brief_extractor as _brief_extractor  # noqa: F401
+from app.agents import creative_director as _creative_director  # noqa: F401
+from app.agents import editing_planner as _editing_planner  # noqa: F401
+from app.agents import vision_analyzer as _vision_analyzer  # noqa: F401
 from app.agents.base import Agent, AgentInput, AgentOutput, ChatAgent
 from app.agents.client import (
     AnthropicLLMClient,
@@ -17,25 +25,16 @@ from app.agents.client import (
 )
 from app.agents.registry import AgentRegistry, get_registry
 
-# Side-effect imports: each module decorates its agent class with
-# ``@get_registry().register`` at import time. Keeping the imports here
-# means the rest of the codebase only has to ``import app.agents`` to
-# populate the registry.
-from app.agents import brief_extractor as _brief_extractor  # noqa: F401
-from app.agents import creative_director as _creative_director  # noqa: F401
-from app.agents import editing_planner as _editing_planner  # noqa: F401
-from app.agents import vision_analyzer as _vision_analyzer  # noqa: F401
-
 __all__ = [
     "Agent",
     "AgentInput",
     "AgentOutput",
-    "ChatAgent",
+    "AgentRegistry",
     "AnthropicLLMClient",
+    "ChatAgent",
     "ImageBlock",
     "LLMClient",
     "LLMMessage",
     "LLMResponse",
-    "AgentRegistry",
     "get_registry",
 ]

@@ -98,12 +98,8 @@ ProjectRepoDep = Annotated[ProjectRepository, Depends(get_project_repository)]
 AssetRepoDep = Annotated[AssetRepository, Depends(get_asset_repository)]
 SessionRepoDep = Annotated[SessionRepository, Depends(get_session_repository)]
 MessageRepoDep = Annotated[MessageRepository, Depends(get_message_repository)]
-EdlVersionRepoDep = Annotated[
-    EdlVersionRepository, Depends(get_edl_version_repository)
-]
-RenderJobRepoDep = Annotated[
-    RenderJobRepository, Depends(get_render_job_repository)
-]
+EdlVersionRepoDep = Annotated[EdlVersionRepository, Depends(get_edl_version_repository)]
+RenderJobRepoDep = Annotated[RenderJobRepository, Depends(get_render_job_repository)]
 
 
 def get_asset_service(
@@ -196,9 +192,7 @@ def get_planning_service(
 
 
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
-AssetAnalysisServiceDep = Annotated[
-    AssetAnalysisService, Depends(get_asset_analysis_service)
-]
+AssetAnalysisServiceDep = Annotated[AssetAnalysisService, Depends(get_asset_analysis_service)]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]
 PlanningServiceDep = Annotated[PlanningService, Depends(get_planning_service)]
 RenderServiceDep = Annotated[RenderJobService, Depends(get_render_service)]

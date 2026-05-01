@@ -72,9 +72,7 @@ class RenderJobRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._db = session
 
-    async def create(
-        self, *, project_id: UUID, edl_version_id: UUID
-    ) -> RenderJob:
+    async def create(self, *, project_id: UUID, edl_version_id: UUID) -> RenderJob:
         job = RenderJob(
             project_id=project_id,
             edl_version_id=edl_version_id,
@@ -107,9 +105,7 @@ class RenderJobRepository:
         await self._db.flush()
         return job
 
-    async def mark_failed(
-        self, job_id: UUID, *, error_message: str
-    ) -> RenderJob:
+    async def mark_failed(self, job_id: UUID, *, error_message: str) -> RenderJob:
         job = await self.get(job_id)
         job.status = JobStatus.FAILED
         job.error_message = error_message

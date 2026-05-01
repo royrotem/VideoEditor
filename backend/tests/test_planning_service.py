@@ -12,7 +12,6 @@ from app.agents.registry import AgentRegistry
 from app.core.errors import NotFoundError, ValidationError
 from app.db.enums import AssetStatus
 from app.services.planning import PlanningService
-
 from tests.fakes import FakeAssetRepository, FakeProjectRepository, ScriptedLLM
 
 
