@@ -82,6 +82,7 @@ Set `SKIP_AGENT=1` to skip the steps that need `ANTHROPIC_API_KEY`.
 | `make infra-down`   | Stop the docker-compose stack (data preserved)     |
 | `make migrate`      | Apply Alembic migrations against the running DB    |
 | `make backend-run`  | Run uvicorn in the foreground (no docker-compose)  |
+| `make backend-worker` | Run a Celery worker (use with `CELERY_EAGER=false`) |
 | `make frontend-run` | Run `next dev` in the foreground                   |
 | `make backend-test` | `pytest` against the backend                       |
 | `make backend-lint` | `ruff` + `black --check` + `mypy`                  |

@@ -57,6 +57,13 @@ class Settings(BaseSettings):
     redis_port: int = Field(default=6379)
     redis_db: int = Field(default=0)
 
+    # --- Celery ---
+    # When ``celery_eager`` is True, ``.delay()`` runs the task
+    # synchronously in the current process - convenient for tests
+    # and ``make dev``. Set to False in production so the API enqueues
+    # work and the worker process picks it up.
+    celery_eager: bool = Field(default=True)
+
     # --- MinIO / S3 ---
     s3_endpoint_url: str = Field(default="http://localhost:9000")
     s3_access_key: str = Field(default="videoeditor")
