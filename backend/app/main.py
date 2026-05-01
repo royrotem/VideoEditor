@@ -21,6 +21,7 @@ from app.agents.client import AnthropicLLMClient
 from app.api.assets import router as assets_router
 from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
+from app.api.planning import router as planning_router
 from app.api.projects import router as projects_router
 from app.api.render import router as render_router
 from app.api.sessions import router as sessions_router
@@ -105,6 +106,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(projects_router)
     app.include_router(assets_router)
     app.include_router(sessions_router)
+    app.include_router(planning_router)
     app.include_router(render_router)
 
     return app
