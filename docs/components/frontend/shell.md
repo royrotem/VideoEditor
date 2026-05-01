@@ -1,13 +1,14 @@
 # Component: Frontend / Shell
 
-> The Next.js App Router shell - root layout, fonts, RTL setup, and the
-> placeholder landing page.
+> The Next.js App Router shell - root layout, fonts, RTL setup, and
+> globals.
 
 ## Purpose
 
 Provide the outermost frame of the web app: HTML language attributes,
-direction (`rtl`), Hebrew typography (Heebo), Tailwind base styles, and a
-placeholder landing page until the real screens land in later phases.
+direction (`rtl`), Hebrew typography (Heebo), Tailwind base styles.
+Page-level components live one directory down (see
+[`projects-pages.md`](projects-pages.md)).
 
 This component is the only place that should set `<html dir>` or load
 global stylesheets.
