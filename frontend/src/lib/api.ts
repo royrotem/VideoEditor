@@ -149,6 +149,21 @@ export const sessionsApi = {
     }),
 };
 
+// --- Planning -------------------------------------------------------------
+
+export const planningApi = {
+  /** Turn a BriefPlan into an EDL via the Editing Planner agent. */
+  planEdit: (
+    projectId: string,
+    brief: BriefPlan,
+    previousEdl?: EditDecisionList | null,
+  ) =>
+    request<EditDecisionList>(`/projects/${projectId}/plan-edit`, {
+      method: "POST",
+      body: { brief, previous_edl: previousEdl ?? null },
+    }),
+};
+
 // --- Render ---------------------------------------------------------------
 
 export const renderApi = {
