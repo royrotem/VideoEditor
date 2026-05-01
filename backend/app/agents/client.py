@@ -13,7 +13,8 @@ and streams responses to keep request timeouts predictable.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import base64
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 
 from anthropic import AsyncAnthropic
@@ -21,12 +22,35 @@ from anthropic import AsyncAnthropic
 from app.core.errors import ExternalServiceError
 
 
+@dataclass(slots=True, frozen=True)
+class ImageBlock:
+    """One image attached to a turn.
+
+    ``data`` carries the raw bytes (JPEG / PNG / GIF / WebP); the
+    transport layer base64-encodes them when posting to Anthropic.
+    Keeping the bytes in memory means tests can build deterministic
+    fixtures without touching the filesystem.
+    """
+
+    data: bytes
+    media_type: Literal["image/jpeg", "image/png", "image/gif", "image/webp"] = (
+        "image/jpeg"
+    )
+
+
 @dataclass(slots=True)
 class LLMMessage:
-    """One turn in a conversation handed to the LLM."""
+    """One turn in a conversation handed to the LLM.
+
+    Most turns are plain text. Vision-capable agents may attach
+    :class:`ImageBlock` instances - the production transport sends
+    those as ``image`` content blocks alongside the text. Fakes can
+    ignore the field.
+    """
 
     role: Literal["user", "assistant"]
     content: str
+    images: list[ImageBlock] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -95,6 +119,8 @@ class AnthropicLLMClient(LLMClient):
             }
         ]
 
+        wire_messages = [_render_message(m) for m in messages]
+
         try:
             # Stream so high max_tokens cannot trip the SDK's HTTP timeout.
             async with self._client.messages.stream(
@@ -102,7 +128,7 @@ class AnthropicLLMClient(LLMClient):
                 max_tokens=max_tokens,
                 system=system_blocks,
                 thinking={"type": "adaptive"},
-                messages=[{"role": m.role, "content": m.content} for m in messages],
+                messages=wire_messages,
             ) as stream:
                 final = await stream.get_final_message()
         except Exception as exc:  # noqa: BLE001 - re-wrap as a domain error
@@ -122,3 +148,30 @@ class AnthropicLLMClient(LLMClient):
             )
             or 0,
         )
+
+
+def _render_message(message: LLMMessage) -> dict[str, object]:
+    """Build the wire shape Anthropic expects for one turn.
+
+    Without images we use the plain string form (which the SDK turns
+    into a single text block). With images we emit a list of content
+    blocks - one per image followed by the text - which is what the
+    Messages API documents for vision-capable models.
+    """
+    if not message.images:
+        return {"role": message.role, "content": message.content}
+
+    content: list[dict[str, object]] = []
+    for image in message.images:
+        content.append(
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": image.media_type,
+                    "data": base64.b64encode(image.data).decode("ascii"),
+                },
+            }
+        )
+    content.append({"type": "text", "text": message.content})
+    return {"role": message.role, "content": content}

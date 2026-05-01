@@ -8,7 +8,13 @@ decorators run on package import.
 """
 
 from app.agents.base import Agent, AgentInput, AgentOutput, ChatAgent
-from app.agents.client import AnthropicLLMClient, LLMClient, LLMMessage, LLMResponse
+from app.agents.client import (
+    AnthropicLLMClient,
+    ImageBlock,
+    LLMClient,
+    LLMMessage,
+    LLMResponse,
+)
 from app.agents.registry import AgentRegistry, get_registry
 
 # Side-effect imports: each module decorates its agent class with
@@ -18,6 +24,7 @@ from app.agents.registry import AgentRegistry, get_registry
 from app.agents import brief_extractor as _brief_extractor  # noqa: F401
 from app.agents import creative_director as _creative_director  # noqa: F401
 from app.agents import editing_planner as _editing_planner  # noqa: F401
+from app.agents import vision_analyzer as _vision_analyzer  # noqa: F401
 
 __all__ = [
     "Agent",
@@ -25,6 +32,7 @@ __all__ = [
     "AgentOutput",
     "ChatAgent",
     "AnthropicLLMClient",
+    "ImageBlock",
     "LLMClient",
     "LLMMessage",
     "LLMResponse",

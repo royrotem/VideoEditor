@@ -40,7 +40,7 @@ this file is the index and shows how they fit together.
 | Agent              | Model        | Role                                                              | Status |
 | ------------------ | ------------ | ----------------------------------------------------------------- | ------ |
 | Orchestrator       | claude-opus-4-7 | Owns the session state machine, decides which agent runs next  | scaffolded |
-| Vision Analyzer    | claude-sonnet-4-6 | Extracts shots, motion, faces, dominant colors, audio energy | planned |
+| [Vision Analyzer](components/agents/vision-analyzer.md) | claude-sonnet-4-6 | Hebrew summary + per-shot descriptions from sample frames | implemented |
 | [Creative Director](components/agents/creative-director.md) | claude-opus-4-7 | Holds the iterative Hebrew dialogue, proposes a plan | implemented |
 | [Brief Extractor](components/agents/brief-extractor.md) | claude-sonnet-4-6 | Distills an approved chat into a structured BriefPlan | implemented |
 | [Editing Planner](components/agents/editing-planner.md) | claude-sonnet-4-6 | Translates approved plan to a structured EDL | implemented |
