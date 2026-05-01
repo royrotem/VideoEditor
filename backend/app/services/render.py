@@ -1,30 +1,28 @@
 """End-to-end render orchestration.
 
-Pulls everything together:
+Two responsibilities, each its own method:
 
-1. Persist the EDL as a new :class:`EdlVersion`.
-2. Create a :class:`RenderJob` row in ``pending`` state.
-3. Validate the EDL against the project's assets - on errors, mark
-   the job ``failed`` and return without touching ``ffmpeg``.
-4. Download the referenced asset bytes from MinIO into a scratch
-   directory.
-5. Invoke the :class:`Renderer` to produce a single output file.
-6. Upload the output to MinIO and mark the job ``succeeded``.
-7. On any pipeline error, mark the job ``failed`` and clean up
-   scratch + partial output.
+- :meth:`RenderJobService.submit` runs in the API request: it
+  persists the EDL as a new :class:`EdlVersion`, creates a
+  :class:`RenderJob` row in ``pending`` state, and enqueues the
+  worker task. Returns immediately with the pending job.
+- :meth:`RenderJobService.execute` runs in the Celery worker (or
+  inline when ``Settings.celery_eager`` is true): it loads the EDL
+  back from the DB, validates against the project's assets,
+  downloads the referenced asset bytes, invokes the renderer,
+  uploads the result to MinIO, and finalises the job row.
 
-The service is fully ``async`` and uses streaming-friendly primitives
-where possible. It runs inline today; moving the rendering step onto a
-Celery worker is a swap of a single dependency.
+Splitting the lifecycle this way means the service is the single
+seam between the API request, the worker, and the agent network -
+nothing else needs to know whether rendering is sync or async.
 """
 
 from __future__ import annotations
 
 import shutil
 import tempfile
-from io import BytesIO
 from pathlib import Path
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from app.agents.contracts import EditDecisionList
 from app.core.config import Settings
@@ -43,6 +41,23 @@ from app.repositories.render_jobs import EdlVersionRepository, RenderJobReposito
 from app.storage.base import ObjectStore
 
 
+class TaskEnqueuer:
+    """Tiny abstraction for "enqueue a render task by job id".
+
+    Lives here so the service can be unit-tested without importing
+    Celery. Production wires :class:`CeleryRenderEnqueuer`; tests
+    can pass a fake that records calls or runs the executor inline.
+
+    ``enqueue`` is async so test enqueuers can ``await
+    service.execute(...)`` directly inside FastAPI's running loop;
+    a sync method would force a nested ``asyncio.run`` and error
+    out.
+    """
+
+    async def enqueue(self, job_id: UUID) -> None:  # pragma: no cover - protocol stub
+        raise NotImplementedError
+
+
 class RenderJobService:
     """Persists and executes one render request end-to-end."""
 
@@ -56,6 +71,7 @@ class RenderJobService:
         assets: AssetRepository,
         edl_versions: EdlVersionRepository,
         render_jobs: RenderJobRepository,
+        enqueuer: TaskEnqueuer | None = None,
     ) -> None:
         self._settings = settings
         self._renderer = renderer
@@ -64,7 +80,10 @@ class RenderJobService:
         self._assets = assets
         self._edl_versions = edl_versions
         self._render_jobs = render_jobs
+        self._enqueuer = enqueuer
         self._log = get_logger("services.render")
+
+    # --- API-side: persist + enqueue ------------------------------------
 
     async def submit(
         self,
@@ -73,12 +92,11 @@ class RenderJobService:
         edl: EditDecisionList,
         session_id: UUID | None = None,
     ) -> RenderJob:
-        """Persist the EDL, create a job, and run it inline.
+        """Persist the EDL, create a pending job, enqueue the worker.
 
-        Returns the final :class:`RenderJob` row (succeeded or failed).
-        Pre-render validation errors surface as a ``failed`` job rather
-        than as exceptions - the caller wants to display the issues to
-        the user, not get a 500.
+        Returns immediately with the ``pending`` job. The actual
+        render runs in the worker (or inline when
+        :class:`TaskEnqueuer` is configured eager).
         """
         await self._projects.get(project_id)
 
@@ -91,7 +109,28 @@ class RenderJobService:
             project_id=project_id, edl_version_id=edl_version.id
         )
 
-        validation = await self._validate(project_id, edl)
+        if self._enqueuer is not None:
+            await self._enqueuer.enqueue(job.id)
+            self._log.info("render.enqueued", job_id=str(job.id))
+
+        return job
+
+    # --- Worker-side: do the actual work --------------------------------
+
+    async def execute(self, job_id: UUID) -> RenderJob:
+        """Run the render for an existing ``pending`` job.
+
+        Validates against the project's assets, downloads bytes,
+        invokes the renderer, uploads, and writes the terminal
+        status. Pre-render validation failures are recorded as
+        ``failed`` (with a structured ``error_message``) rather than
+        raised - the caller wants to display issues, not handle 5xx.
+        """
+        job = await self._render_jobs.get(job_id)
+        edl_version = await self._edl_versions.get(job.edl_version_id)
+        edl = EditDecisionList.model_validate(edl_version.edl)
+
+        validation = await self._validate(job.project_id, edl)
         if not validation.ok:
             return await self._render_jobs.mark_failed(
                 job.id, error_message=_summarise(validation)
@@ -100,7 +139,7 @@ class RenderJobService:
         await self._render_jobs.mark_running(job.id)
 
         try:
-            return await self._render_and_publish(project_id, job.id, edl)
+            return await self._render_and_publish(job.project_id, job.id, edl)
         except AppError as exc:
             self._log.warning("render.failed", job_id=str(job.id), error=exc.message)
             return await self._render_jobs.mark_failed(
@@ -111,6 +150,17 @@ class RenderJobService:
             return await self._render_jobs.mark_failed(
                 job.id, error_message=f"unexpected error: {exc}"
             )
+
+    # --- Read paths used by routes --------------------------------------
+
+    async def list_for_project(self, project_id: UUID) -> list[RenderJob]:
+        await self._projects.get(project_id)
+        return await self._render_jobs.list_for_project(project_id)
+
+    async def get(self, job_id: UUID) -> RenderJob:
+        return await self._render_jobs.get(job_id)
+
+    # --- Internals -------------------------------------------------------
 
     async def _validate(
         self, project_id: UUID, edl: EditDecisionList
@@ -209,13 +259,6 @@ class RenderJobService:
         easy to find in the MinIO console, and never collide.
         """
         return f"{project_id}/{job_id}.{container}"
-
-    async def list_for_project(self, project_id: UUID) -> list[RenderJob]:
-        await self._projects.get(project_id)
-        return await self._render_jobs.list_for_project(project_id)
-
-    async def get(self, job_id: UUID) -> RenderJob:
-        return await self._render_jobs.get(job_id)
 
 
 def _summarise(report: ValidationReport) -> str:

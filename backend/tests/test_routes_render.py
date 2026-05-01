@@ -23,6 +23,7 @@ from app.api.deps import (
     get_object_store,
     get_probe,
     get_project_repository,
+    get_render_enqueuer,
     get_render_job_repository,
     get_renderer,
 )
@@ -31,6 +32,8 @@ from app.db.enums import AssetStatus
 from app.main import create_app
 from app.pipeline.probe import StubProbe
 from app.pipeline.renderer import RenderInput, RenderResult, Renderer
+from app.services.render import RenderJobService
+from app.services.render_enqueuer import ImmediateRenderEnqueuer
 
 from tests.fakes import (
     FakeAssetRepository,
@@ -68,7 +71,8 @@ def fakes():
 @pytest.fixture
 def app_client(fakes) -> Iterator[TestClient]:
     projects, assets, edl_versions, render_jobs, store, renderer = fakes
-    app = create_app(settings=Settings(environment="test"))
+    settings = Settings(environment="test")
+    app = create_app(settings=settings)
 
     app.dependency_overrides[get_project_repository] = lambda: projects
     app.dependency_overrides[get_asset_repository] = lambda: assets
@@ -77,6 +81,28 @@ def app_client(fakes) -> Iterator[TestClient]:
     app.dependency_overrides[get_object_store] = lambda: store
     app.dependency_overrides[get_probe] = lambda: StubProbe(duration_seconds=30.0)
     app.dependency_overrides[get_renderer] = lambda: renderer
+
+    # Substitute the production Celery enqueuer with one that runs
+    # ``execute`` inline against the same in-memory fakes the route
+    # uses. This keeps the assertions the same as before the
+    # submit/execute split (POST /render → terminal status), while
+    # the service itself stays production-shaped.
+    async def execute_with_same_fakes(job_id):
+        executor = RenderJobService(
+            settings=settings,
+            renderer=renderer,
+            object_store=store,
+            projects=projects,
+            assets=assets,
+            edl_versions=edl_versions,
+            render_jobs=render_jobs,
+            enqueuer=None,
+        )
+        await executor.execute(job_id)
+
+    app.dependency_overrides[get_render_enqueuer] = lambda: ImmediateRenderEnqueuer(
+        execute_with_same_fakes
+    )
 
     with TestClient(app) as client:
         yield client

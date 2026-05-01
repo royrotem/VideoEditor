@@ -26,7 +26,8 @@ from app.services.analysis import AssetAnalysisService
 from app.services.assets import AssetService
 from app.services.chat import ChatService
 from app.services.planning import PlanningService
-from app.services.render import RenderJobService
+from app.services.render import RenderJobService, TaskEnqueuer
+from app.services.render_enqueuer import CeleryRenderEnqueuer
 from app.storage.base import ObjectStore
 
 
@@ -151,6 +152,19 @@ def get_asset_analysis_service(
     )
 
 
+def get_render_enqueuer() -> TaskEnqueuer:
+    """Production enqueuer.
+
+    Always returns a :class:`CeleryRenderEnqueuer`. The caller's
+    ``Settings.celery_eager`` decides whether the task runs in-process
+    or is sent to the Redis broker - the API code path is identical.
+    """
+    return CeleryRenderEnqueuer()
+
+
+RenderEnqueuerDep = Annotated[TaskEnqueuer, Depends(get_render_enqueuer)]
+
+
 def get_render_service(
     settings: SettingsDep,
     renderer: RendererDep,
@@ -159,6 +173,7 @@ def get_render_service(
     assets: AssetRepoDep,
     edl_versions: EdlVersionRepoDep,
     render_jobs: RenderJobRepoDep,
+    enqueuer: RenderEnqueuerDep,
 ) -> RenderJobService:
     return RenderJobService(
         settings=settings,
@@ -168,6 +183,7 @@ def get_render_service(
         assets=assets,
         edl_versions=edl_versions,
         render_jobs=render_jobs,
+        enqueuer=enqueuer,
     )
 
 

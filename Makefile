@@ -5,7 +5,7 @@
 # README.md for the prose version.
 
 .PHONY: help infra-up infra-down infra-logs migrate \
-        backend-install backend-run backend-test backend-lint \
+        backend-install backend-run backend-worker backend-test backend-lint \
         frontend-install frontend-run frontend-test \
         dev test smoke clean
 
@@ -16,6 +16,7 @@ help:
 	@echo "  make infra-down        # stop containers (data preserved)"
 	@echo "  make migrate           # apply Alembic migrations"
 	@echo "  make backend-run       # uvicorn (foreground)"
+	@echo "  make backend-worker    # Celery worker (foreground)"
 	@echo "  make frontend-run      # next dev server (foreground)"
 	@echo "  make test              # full test suite (backend + frontend)"
 	@echo "  make smoke             # quick end-to-end smoke against running stack"
@@ -44,6 +45,12 @@ migrate:
 
 backend-run:
 	cd backend && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Celery worker. Set CELERY_EAGER=false in .env (or unset celery_eager) to
+# move rendering off the request thread; the worker picks up jobs from
+# Redis. Useful for debugging but optional in dev (eager mode by default).
+backend-worker:
+	cd backend && uv run celery -A app.queue.celery_app:celery_app worker --loglevel=INFO
 
 backend-test:
 	cd backend && uv run pytest
