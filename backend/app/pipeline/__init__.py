@@ -17,9 +17,14 @@ from app.pipeline.edl_validator import (
     ValidationReport,
     ValidationSeverity,
 )
+from app.pipeline.probe import FFprobeProbe, Probe, ProbeResult, StubProbe
 
 __all__ = [
     "EdlValidator",
+    "FFprobeProbe",
+    "Probe",
+    "ProbeResult",
+    "StubProbe",
     "ValidationIssue",
     "ValidationReport",
     "ValidationSeverity",

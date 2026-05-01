@@ -15,9 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.agents.client import LLMClient
 from app.core.config import Settings
 from app.db.session import get_db_session
+from app.pipeline.probe import Probe
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
 from app.repositories.sessions import MessageRepository, SessionRepository
+from app.services.analysis import AssetAnalysisService
 from app.services.assets import AssetService
 from app.services.chat import ChatService
 from app.storage.base import ObjectStore
@@ -38,10 +40,16 @@ def get_llm_client(request: Request) -> LLMClient:
     return llm
 
 
+def get_probe(request: Request) -> Probe:
+    probe: Probe = request.app.state.probe
+    return probe
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ObjectStoreDep = Annotated[ObjectStore, Depends(get_object_store)]
 LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
+ProbeDep = Annotated[Probe, Depends(get_probe)]
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -96,5 +104,18 @@ def get_chat_service(
     )
 
 
+def get_asset_analysis_service(
+    probe: ProbeDep,
+    object_store: ObjectStoreDep,
+    assets: AssetRepoDep,
+) -> AssetAnalysisService:
+    return AssetAnalysisService(
+        probe=probe, object_store=object_store, assets=assets
+    )
+
+
 AssetServiceDep = Annotated[AssetService, Depends(get_asset_service)]
+AssetAnalysisServiceDep = Annotated[
+    AssetAnalysisService, Depends(get_asset_analysis_service)
+]
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

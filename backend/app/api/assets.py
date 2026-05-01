@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, File, Path, Query, UploadFile, status
 
-from app.api.deps import AssetServiceDep
+from app.api.deps import AssetAnalysisServiceDep, AssetServiceDep
 from app.schemas.assets import AssetCreated, AssetRead
 from app.services.assets import DEFAULT_PREVIEW_TTL_SECONDS
 
@@ -16,10 +16,17 @@ router = APIRouter(prefix="/projects/{project_id}/assets", tags=["assets"])
 @router.post("", response_model=AssetCreated, status_code=status.HTTP_201_CREATED)
 async def upload_asset(
     service: AssetServiceDep,
+    analysis: AssetAnalysisServiceDep,
     project_id: UUID = Path(...),
     file: UploadFile = File(...),
 ) -> AssetCreated:
-    """Upload a single file (video / audio / image) to a project."""
+    """Upload a single file (video / audio / image) to a project.
+
+    Runs the deterministic probe stage inline before responding so the
+    asset's ``analysis`` (duration, resolution, audio presence) is
+    available immediately - the EDL Validator and the Creative
+    Director both depend on it.
+    """
     asset = await service.upload(
         project_id=project_id,
         filename=file.filename or "upload",
@@ -27,6 +34,8 @@ async def upload_asset(
         size_bytes=file.size,
         data=file.file,
     )
+    asset = await analysis.analyze(asset.id)
+
     preview_url = await service.presigned_preview_url(
         asset.id, ttl_seconds=DEFAULT_PREVIEW_TTL_SECONDS
     )
@@ -35,6 +44,25 @@ async def upload_asset(
         preview_url=preview_url,
         preview_url_ttl_seconds=DEFAULT_PREVIEW_TTL_SECONDS,
     )
+
+
+@router.post(
+    "/{asset_id}/analyze",
+    response_model=AssetRead,
+    status_code=status.HTTP_200_OK,
+)
+async def reanalyze_asset(
+    analysis: AssetAnalysisServiceDep,
+    project_id: UUID = Path(...),
+    asset_id: UUID = Path(...),
+) -> AssetRead:
+    """Re-run the probe stage on an existing asset.
+
+    Useful after pushing a new probe implementation, or when an
+    earlier analysis failed and the user wants to retry.
+    """
+    asset = await analysis.analyze(asset_id)
+    return AssetRead.model_validate(asset)
 
 
 @router.get("", response_model=list[AssetRead])
