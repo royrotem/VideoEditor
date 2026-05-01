@@ -58,10 +58,16 @@ A Next.js 15 App Router application configured for RTL Hebrew. Owns:
 
 ### 2. Backend API (`backend/app/api/`)
 FastAPI service that exposes:
-- project / asset / job CRUD,
+- project / asset / job CRUD (see
+  [`components/api/projects.md`](components/api/projects.md) and
+  [`components/api/assets.md`](components/api/assets.md)),
 - a streaming chat endpoint that proxies to the agent orchestrator,
 - a render endpoint that enqueues a render job,
 - WebSocket events for progress.
+
+Routes are kept thin: they parse input, delegate to a service, and
+translate domain errors. Business logic lives in `app.services.*`,
+and SQLAlchemy queries live in `app.repositories.*`.
 
 ### 3. Agent Network (`backend/app/agents/`)
 A directed network of Claude-backed agents coordinated by an Orchestrator.
