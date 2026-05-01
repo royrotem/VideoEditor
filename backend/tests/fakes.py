@@ -14,7 +14,7 @@ from uuid import UUID, uuid4
 
 from app.agents.client import LLMClient, LLMMessage, LLMResponse
 from app.core.errors import AssetNotFoundError, ExternalServiceError, NotFoundError
-from app.db.enums import AssetStatus, MessageRole, SessionStatus
+from app.db.enums import AssetStatus, JobStatus, MessageRole, SessionStatus
 from app.storage.base import ObjectStore, StoredObject
 
 
@@ -255,6 +255,127 @@ class FakeMessageRepository:
     async def list_for_session(self, session_id: UUID) -> list[FakeMessage]:
         chat = await self._sessions.get(session_id)
         return list(chat.messages)
+
+
+# --- EDL versions / render jobs ------------------------------------------
+
+
+class FakeEdlVersion:
+    def __init__(
+        self,
+        *,
+        project_id: UUID,
+        version_number: int,
+        edl: dict[str, Any],
+        session_id: UUID | None = None,
+    ) -> None:
+        now = datetime.now(UTC)
+        self.id: UUID = uuid4()
+        self.project_id = project_id
+        self.version_number = version_number
+        self.edl = edl
+        self.session_id = session_id
+        self.created_at = now
+        self.updated_at = now
+
+
+class FakeEdlVersionRepository:
+    def __init__(self) -> None:
+        self._rows: dict[UUID, FakeEdlVersion] = {}
+
+    async def insert(
+        self,
+        *,
+        project_id: UUID,
+        edl: dict[str, Any],
+        session_id: UUID | None = None,
+    ) -> FakeEdlVersion:
+        existing = [r for r in self._rows.values() if r.project_id == project_id]
+        next_version = max((r.version_number for r in existing), default=0) + 1
+        row = FakeEdlVersion(
+            project_id=project_id,
+            version_number=next_version,
+            edl=edl,
+            session_id=session_id,
+        )
+        self._rows[row.id] = row
+        return row
+
+    async def get(self, edl_version_id: UUID) -> FakeEdlVersion:
+        row = self._rows.get(edl_version_id)
+        if row is None:
+            raise NotFoundError(f"edl_version {edl_version_id} not found")
+        return row
+
+    async def latest_for_project(self, project_id: UUID) -> FakeEdlVersion | None:
+        rows = [r for r in self._rows.values() if r.project_id == project_id]
+        if not rows:
+            return None
+        return max(rows, key=lambda r: r.version_number)
+
+
+class FakeRenderJob:
+    def __init__(
+        self, *, project_id: UUID, edl_version_id: UUID
+    ) -> None:
+        now = datetime.now(UTC)
+        self.id: UUID = uuid4()
+        self.project_id = project_id
+        self.edl_version_id = edl_version_id
+        self.status: JobStatus = JobStatus.PENDING
+        self.output_bucket: str | None = None
+        self.output_key: str | None = None
+        self.error_message: str | None = None
+        self.created_at = now
+        self.updated_at = now
+
+
+class FakeRenderJobRepository:
+    def __init__(self) -> None:
+        self._rows: dict[UUID, FakeRenderJob] = {}
+
+    async def create(
+        self, *, project_id: UUID, edl_version_id: UUID
+    ) -> FakeRenderJob:
+        job = FakeRenderJob(project_id=project_id, edl_version_id=edl_version_id)
+        self._rows[job.id] = job
+        return job
+
+    async def get(self, job_id: UUID) -> FakeRenderJob:
+        job = self._rows.get(job_id)
+        if job is None:
+            raise NotFoundError(f"render_job {job_id} not found")
+        return job
+
+    async def mark_running(self, job_id: UUID) -> FakeRenderJob:
+        job = await self.get(job_id)
+        job.status = JobStatus.RUNNING
+        return job
+
+    async def mark_succeeded(
+        self, job_id: UUID, *, output_bucket: str, output_key: str
+    ) -> FakeRenderJob:
+        job = await self.get(job_id)
+        job.status = JobStatus.SUCCEEDED
+        job.output_bucket = output_bucket
+        job.output_key = output_key
+        job.error_message = None
+        return job
+
+    async def mark_failed(
+        self, job_id: UUID, *, error_message: str
+    ) -> FakeRenderJob:
+        job = await self.get(job_id)
+        job.status = JobStatus.FAILED
+        job.error_message = error_message
+        return job
+
+    async def list_for_project(self, project_id: UUID) -> list[FakeRenderJob]:
+        return sorted(
+            (j for j in self._rows.values() if j.project_id == project_id),
+            key=lambda j: j.created_at,
+            reverse=True,
+        )
 
 
 # --- LLM ------------------------------------------------------------------
