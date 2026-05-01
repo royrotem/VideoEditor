@@ -28,7 +28,15 @@ out/
 !.env.*.example
 
 # --- Editors / OS ---
-.vscode/
+# Ignore .vscode/ by default but ship the canonical workspace files
+# (extensions, settings, tasks, launch) so contributors get a working
+# editor on first open. Personal stuff (history, sftp config, etc.)
+# stays local.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 .idea/
 .DS_Store
 Thumbs.db
