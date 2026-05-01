@@ -49,6 +49,14 @@ this file is the index and shows how they fit together.
 | Subtitle / Text    | claude-haiku-4-5  | Hebrew subtitles, on-screen text, kinetic typography         |
 | QA Reviewer        | claude-sonnet-4-6 | Compares the EDL (and the rendered output) to the brief      |
 
+## Framework
+
+The shared plumbing - base classes, registry, orchestrator, LLM client -
+lives in `backend/app/agents/` and is documented in
+[`components/agents/framework.md`](components/agents/framework.md).
+Every concrete agent in the table above is a thin subclass that sets a
+system prompt, picks a model, and declares its output model.
+
 ## Inter-agent contract
 
 All agents speak through Pydantic models defined in
