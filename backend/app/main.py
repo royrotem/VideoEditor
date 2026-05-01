@@ -14,8 +14,10 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.assets import router as assets_router
 from app.api.errors import register_error_handlers
 from app.api.health import router as health_router
+from app.api.projects import router as projects_router
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, get_logger
 from app.db.engine import create_engine_and_sessionmaker, dispose_engine
@@ -77,6 +79,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     register_error_handlers(app)
     app.include_router(health_router)
+    app.include_router(projects_router)
+    app.include_router(assets_router)
 
     return app
 
