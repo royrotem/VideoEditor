@@ -37,17 +37,18 @@ this file is the index and shows how they fit together.
 
 ## Agents
 
-| Agent              | Model        | Role                                                              |
-| ------------------ | ------------ | ----------------------------------------------------------------- |
-| Orchestrator       | claude-opus-4-7 | Owns the session state machine, decides which agent runs next  |
-| Vision Analyzer    | claude-sonnet-4-6 | Extracts shots, motion, faces, dominant colors, audio energy |
-| Creative Director  | claude-opus-4-7 | Holds the iterative Hebrew dialogue, proposes a plan           |
-| Editing Planner    | claude-sonnet-4-6 | Translates approved plan to a structured EDL                 |
-| Cut Specialist     | claude-sonnet-4-6 | Picks cut points, transitions, pacing                        |
-| Audio Engineer     | claude-haiku-4-5  | Music selection, ducking, voice-over alignment               |
-| Color / Effects    | claude-sonnet-4-6 | Color grade and effect parameters                            |
-| Subtitle / Text    | claude-haiku-4-5  | Hebrew subtitles, on-screen text, kinetic typography         |
-| QA Reviewer        | claude-sonnet-4-6 | Compares the EDL (and the rendered output) to the brief      |
+| Agent              | Model        | Role                                                              | Status |
+| ------------------ | ------------ | ----------------------------------------------------------------- | ------ |
+| Orchestrator       | claude-opus-4-7 | Owns the session state machine, decides which agent runs next  | scaffolded |
+| Vision Analyzer    | claude-sonnet-4-6 | Extracts shots, motion, faces, dominant colors, audio energy | planned |
+| [Creative Director](components/agents/creative-director.md) | claude-opus-4-7 | Holds the iterative Hebrew dialogue, proposes a plan | implemented |
+| [Brief Extractor](components/agents/brief-extractor.md) | claude-sonnet-4-6 | Distills an approved chat into a structured BriefPlan | implemented |
+| Editing Planner    | claude-sonnet-4-6 | Translates approved plan to a structured EDL                 | planned |
+| Cut Specialist     | claude-sonnet-4-6 | Picks cut points, transitions, pacing                        | planned |
+| Audio Engineer     | claude-haiku-4-5  | Music selection, ducking, voice-over alignment               | planned |
+| Color / Effects    | claude-sonnet-4-6 | Color grade and effect parameters                            | planned |
+| Subtitle / Text    | claude-haiku-4-5  | Hebrew subtitles, on-screen text, kinetic typography         | planned |
+| QA Reviewer        | claude-sonnet-4-6 | Compares the EDL (and the rendered output) to the brief      | planned |
 
 ## Framework
 
