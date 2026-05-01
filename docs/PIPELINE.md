@@ -7,17 +7,17 @@ network - and turns it into a rendered video file in object storage.
 ## Stages
 
 ```
-ingest → analyze → plan (agents) → assemble → render → publish
+ingest → analyze → plan (agents) → validate → render → publish
 ```
 
-| Stage     | Module                           | What it does                                              |
-| --------- | -------------------------------- | --------------------------------------------------------- |
-| Ingest    | `pipeline/ingest.py`             | Validates uploads, probes with FFprobe, stores in MinIO   |
-| Analyze   | `pipeline/analyze.py`            | Scene detection, transcription (Whisper), shot tagging    |
-| Plan      | (handled by agent network)       | Produces the EDL                                          |
-| Assemble  | `pipeline/assemble.py`           | Resolves EDL clips to physical files, builds a MoviePy graph |
-| Render    | `pipeline/render.py`             | Encodes via FFmpeg, writes to MinIO                       |
-| Publish   | `pipeline/publish.py`            | Records render artifact in DB, emits WS event             |
+| Stage    | Module                                            | What it does                                                      | Status |
+| -------- | ------------------------------------------------- | ----------------------------------------------------------------- | ------ |
+| Ingest   | `services/assets.py` (`AssetService.upload`)      | Stores uploaded bytes in MinIO and writes the asset row in Postgres | implemented |
+| Analyze  | `pipeline/analyze.py`                             | Scene detection, transcription (Whisper), shot tagging            | planned |
+| Plan     | `agents/editing_planner.py` + the rest of the agent network | Produces the EDL                                                  | implemented |
+| Validate | `pipeline/edl_validator.py` ([doc](components/pipeline/edl-validator.md)) | Structural EDL validation against the project's assets            | implemented |
+| Render   | `pipeline/renderer.py` ([doc](components/pipeline/renderer.md)) + `services/render.py` ([doc](components/services/render.md)) | EDL → ffmpeg → MP4 in MinIO | implemented |
+| Publish  | (folded into the render service)                  | Updates the render-job row; later: emits a WS event              | partial |
 
 ## EDL format
 
