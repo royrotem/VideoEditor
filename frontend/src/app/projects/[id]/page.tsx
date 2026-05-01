@@ -86,6 +86,27 @@ export default function ProjectPage({ params }: { params: Params }) {
 
       {project && (
         <>
+          <nav className="grid grid-cols-2 gap-3">
+            <Link
+              href={`/projects/${project.id}/sessions`}
+              className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-3 transition-colors hover:bg-neutral-900"
+            >
+              <p className="font-medium">שיחות עריכה</p>
+              <p className="text-xs text-neutral-400">
+                שוחחו עם הבמאי כדי לתכנן את הסרטון
+              </p>
+            </Link>
+            <Link
+              href={`/projects/${project.id}/renders`}
+              className="rounded-lg border border-neutral-800 bg-neutral-900/40 px-4 py-3 transition-colors hover:bg-neutral-900"
+            >
+              <p className="font-medium">רנדרים</p>
+              <p className="text-xs text-neutral-400">
+                צפו בסרטונים שכבר הופקו
+              </p>
+            </Link>
+          </nav>
+
           <section className="space-y-4 rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
             <h2 className="text-lg font-semibold">קבצים</h2>
             <AssetUploader projectId={project.id} onUploaded={refresh} />
