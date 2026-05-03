@@ -73,6 +73,12 @@ module = ["celery.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
+# ``openai-whisper`` ships without type stubs; the lazy import in
+# WhisperTranscriber is the only call site.
+module = ["whisper"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
 module = ["app.queue.tasks.*"]
 disallow_untyped_decorators = false
 

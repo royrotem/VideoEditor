@@ -1,7 +1,8 @@
 """Asset analysis use case.
 
 Pulls one asset's bytes onto local disk, runs a :class:`Probe` over it
-(``ffprobe`` for duration / resolution / audio presence), then -
+(``ffprobe`` for duration / resolution / audio presence), optionally
+transcribes the audio via :class:`Transcriber` (Whisper), then -
 when wired in - extracts a handful of sample frames and asks the
 Vision Analyzer agent for a Hebrew summary plus per-shot
 descriptions. Persists everything into ``assets.analysis`` and
@@ -9,8 +10,8 @@ flips ``status``.
 
 Lives in ``services`` rather than in ``pipeline`` because it is the
 orchestration layer - it owns the DB and storage interactions. The
-probe, the frame extractor, and the agent themselves stay pure
-functions of their inputs.
+probe, transcriber, frame extractor, and the agent themselves stay
+pure functions of their inputs.
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from typing import Literal, cast
 from uuid import UUID
 
 from app.agents.client import ImageBlock, LLMClient
+from app.agents.contracts import TranscriptSegment
 from app.agents.vision_analyzer import (
     VisionAnalysisInput,
     VisionAnalysisOutput,
@@ -33,6 +35,7 @@ from app.db.enums import AssetStatus
 from app.db.models import Asset
 from app.pipeline.frame_extractor import ExtractedFrame, FrameExtractor
 from app.pipeline.probe import Probe, ProbeResult
+from app.pipeline.transcriber import Transcriber
 from app.repositories.assets import AssetRepository
 from app.storage.base import ObjectStore
 
@@ -50,6 +53,7 @@ class AssetAnalysisService:
         assets: AssetRepository,
         frame_extractor: FrameExtractor | None = None,
         llm: LLMClient | None = None,
+        transcriber: Transcriber | None = None,
         vision_frame_count: int = DEFAULT_VISION_FRAME_COUNT,
     ) -> None:
         self._probe = probe
@@ -57,17 +61,18 @@ class AssetAnalysisService:
         self._assets = assets
         self._frame_extractor = frame_extractor
         self._llm = llm
+        self._transcriber = transcriber
         self._vision_frame_count = vision_frame_count
         self._log = get_logger("services.analysis")
 
     async def analyze(self, asset_id: UUID) -> Asset:
-        """Probe ``asset_id``, optionally run vision analysis, persist.
+        """Probe ``asset_id``, optionally transcribe + run vision, persist.
 
-        The probe is mandatory; the vision pass is best-effort. If
-        the frame extractor or LLM client are not configured, or if
-        either step raises, the asset still ends up in ``status=ready``
-        with the probe facts populated. A failed vision step is logged
-        as a warning, not propagated.
+        The probe is mandatory; transcription and vision are
+        best-effort. If a dependency is not configured, or if a step
+        raises, the asset still ends up in ``status=ready`` with the
+        probe facts populated. Failed best-effort steps are logged as
+        warnings, not propagated.
         """
         asset = await self._assets.get(asset_id)
         asset.status = AssetStatus.ANALYZING
@@ -92,6 +97,7 @@ class AssetAnalysisService:
 
             asset.analysis = _merge_probe_into_analysis(asset.analysis, probe_result)
 
+            await self._maybe_transcribe(asset, local_path, probe_result)
             await self._maybe_run_vision_pass(asset, local_path, probe_result)
 
             asset.status = AssetStatus.READY
@@ -99,11 +105,48 @@ class AssetAnalysisService:
                 "analysis.complete",
                 asset_id=str(asset.id),
                 duration_seconds=probe_result.duration_seconds,
+                has_transcript=bool((asset.analysis or {}).get("transcript")),
                 has_summary=bool((asset.analysis or {}).get("summary")),
             )
             return asset
         finally:
             shutil.rmtree(scratch, ignore_errors=True)
+
+    async def _maybe_transcribe(
+        self,
+        asset: Asset,
+        local_path: Path,
+        probe_result: ProbeResult,
+    ) -> None:
+        """Best-effort Whisper pass.
+
+        Skipped silently when:
+
+        - the transcriber is not configured (e.g. tests / dev without
+          ``openai-whisper`` weights),
+        - the probe reports no audio track,
+        - the probe reports zero duration,
+        - the call raises - logged as a warning; the deterministic
+          half of the analysis is still stored.
+        """
+        if (
+            self._transcriber is None
+            or not probe_result.has_audio
+            or probe_result.duration_seconds <= 0
+        ):
+            return
+
+        try:
+            segments = await self._transcriber.transcribe(local_path)
+        except AppError as exc:
+            self._log.warning(
+                "analysis.transcribe_failed",
+                asset_id=str(asset.id),
+                error=exc.message,
+            )
+            return
+
+        asset.analysis = _merge_transcript_into_analysis(asset.analysis, segments)
 
     async def _maybe_run_vision_pass(
         self,
@@ -201,6 +244,15 @@ def _merge_vision_into_analysis(
     merged: dict[str, object] = dict(existing or {})
     merged["summary"] = output.summary
     merged["shots"] = [shot.model_dump(mode="json") for shot in output.shots]
+    return merged
+
+
+def _merge_transcript_into_analysis(
+    existing: dict[str, object] | None, segments: list[TranscriptSegment]
+) -> dict[str, object]:
+    """Layer Whisper segments on top of the probe-stage analysis."""
+    merged: dict[str, object] = dict(existing or {})
+    merged["transcript"] = [s.model_dump(mode="json") for s in segments]
     return merged
 
 

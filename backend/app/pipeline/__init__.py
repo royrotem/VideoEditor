@@ -24,6 +24,7 @@ from app.pipeline.frame_extractor import (
     StubFrameExtractor,
 )
 from app.pipeline.probe import FFprobeProbe, Probe, ProbeResult, StubProbe
+from app.pipeline.transcriber import StubTranscriber, Transcriber, WhisperTranscriber
 
 __all__ = [
     "EdlValidator",
@@ -35,7 +36,10 @@ __all__ = [
     "ProbeResult",
     "StubFrameExtractor",
     "StubProbe",
+    "StubTranscriber",
+    "Transcriber",
     "ValidationIssue",
     "ValidationReport",
     "ValidationSeverity",
+    "WhisperTranscriber",
 ]

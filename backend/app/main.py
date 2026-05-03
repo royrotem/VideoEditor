@@ -33,6 +33,7 @@ from app.db.engine import create_engine_and_sessionmaker, dispose_engine
 from app.pipeline.frame_extractor import FFmpegFrameExtractor
 from app.pipeline.probe import FFprobeProbe
 from app.pipeline.renderer import FFmpegRenderer
+from app.pipeline.transcriber import WhisperTranscriber
 from app.queue.redis_client import create_redis_client
 from app.storage.s3 import S3ObjectStore
 
@@ -68,6 +69,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.llm_client = llm_client
     app.state.probe = FFprobeProbe()
     app.state.frame_extractor = FFmpegFrameExtractor()
+    app.state.transcriber = WhisperTranscriber()
     app.state.renderer = FFmpegRenderer()
 
     try:

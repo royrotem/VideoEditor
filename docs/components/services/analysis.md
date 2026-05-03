@@ -1,10 +1,11 @@
 # Component: Services / AssetAnalysisService
 
 > Orchestrates the analysis stages on a stored asset: download bytes
-> from MinIO, run a :class:`Probe`, optionally extract sample frames
-> and run the Vision Analyzer agent for a Hebrew summary + per-shot
-> descriptions, persist everything into ``assets.analysis``, flip
-> the asset's ``status``.
+> from MinIO, run a :class:`Probe`, optionally transcribe the audio
+> with Whisper, optionally extract sample frames and run the Vision
+> Analyzer agent for a Hebrew summary + per-shot descriptions,
+> persist everything into ``assets.analysis``, flip the asset's
+> ``status``.
 
 ## Purpose
 
@@ -29,6 +30,11 @@ analyze(asset_id)
   ├── probe.probe(local_path)
   │     ├── on AppError → status=failed, analysis={"error": ...}, return
   │     └── on success  → merge probe facts into analysis
+  ├── (optional) transcribe pass — best-effort:
+  │     ├── if transcriber and probe.has_audio and duration > 0:
+  │     │     ├── transcriber.transcribe(local_path)
+  │     │     └── merge {transcript: [...]} into analysis
+  │     └── any AppError logged as a warning, NOT propagated
   ├── (optional) vision pass — best-effort:
   │     ├── if frame_extractor and llm and duration_seconds > 0:
   │     │     ├── frame_extractor.extract(local_path, count=N, duration=...)
@@ -70,12 +76,21 @@ The Vision Analyzer (when wired in) adds:
 | `summary`  | :class:`VisionAnalysisOutput.summary`          |
 | `shots`    | :class:`VisionAnalysisOutput.shots` (JSON list)|
 
-Keys outside that set are preserved by the merge step. Re-running
-either pass alone does not blow away the other half.
+The transcriber (when wired in) adds:
+
+| Key          | Source                                       |
+| ------------ | -------------------------------------------- |
+| `transcript` | ``list[TranscriptSegment]`` from Whisper     |
+
+Keys outside the union are preserved by the merge step. Re-running
+any one pass alone does not blow away the others.
 
 ## Dependencies
 
 - :class:`Probe` (default :class:`FFprobeProbe`).
+- :class:`Transcriber` (default :class:`WhisperTranscriber`,
+  optional - transcription is skipped silently if absent or if the
+  asset has no audio).
 - :class:`FrameExtractor` (default :class:`FFmpegFrameExtractor`,
   optional - vision pass is skipped silently if absent).
 - :class:`LLMClient` (default :class:`AnthropicLLMClient`, optional
