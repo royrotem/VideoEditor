@@ -255,3 +255,95 @@ async def test_vision_pass_failure_does_not_break_probe_facts(
     assert updated.analysis is not None
     assert updated.analysis["duration_seconds"] == 10.0
     assert "summary" not in updated.analysis
+
+
+# --- transcript pass ------------------------------------------------------
+
+
+async def test_analyze_runs_transcriber_when_audio_present(
+    settings: Settings,
+) -> None:
+    from app.agents.contracts import TranscriptSegment
+    from app.pipeline.transcriber import StubTranscriber
+
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
+
+    canned = [
+        TranscriptSegment(start_seconds=0, end_seconds=2.5, text="שלום", language="he"),
+        TranscriptSegment(start_seconds=2.5, end_seconds=5, text="עולם", language="he"),
+    ]
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=5.0, has_audio=True),
+        object_store=store,
+        assets=assets,
+        transcriber=StubTranscriber(segments=canned),
+    )
+
+    updated = await service.analyze(asset.id)
+
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    transcript = updated.analysis["transcript"]
+    assert isinstance(transcript, list) and len(transcript) == 2
+    assert transcript[0]["text"] == "שלום"
+    # Probe facts still present.
+    assert updated.analysis["duration_seconds"] == 5.0
+
+
+async def test_transcribe_skipped_when_no_audio(settings: Settings) -> None:
+    from app.pipeline.transcriber import StubTranscriber
+
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=10.0, has_audio=False),
+        object_store=store,
+        assets=assets,
+        transcriber=StubTranscriber(
+            segments=[]
+        ),  # would return [] anyway, but the call should not happen
+    )
+    updated = await service.analyze(asset.id)
+
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    assert "transcript" not in updated.analysis
+
+
+async def test_transcribe_failure_does_not_break_probe_facts(
+    settings: Settings,
+) -> None:
+
+    from app.agents.contracts import TranscriptSegment
+    from app.pipeline.transcriber import Transcriber
+
+    class _AngryTranscriber(Transcriber):
+        async def transcribe(
+            self, path: Path, *, language: str | None = None
+        ) -> list[TranscriptSegment]:
+            raise ExternalServiceError("whisper crashed")
+
+    projects = FakeProjectRepository()
+    assets = FakeAssetRepository()
+    store = InMemoryObjectStore()
+    _, asset = await _seed_asset(settings=settings, projects=projects, assets=assets, store=store)
+
+    service = AssetAnalysisService(
+        probe=StubProbe(duration_seconds=10.0, has_audio=True),
+        object_store=store,
+        assets=assets,
+        transcriber=_AngryTranscriber(),
+    )
+    updated = await service.analyze(asset.id)
+
+    assert updated.status is AssetStatus.READY
+    assert updated.analysis is not None
+    assert updated.analysis["duration_seconds"] == 10.0
+    assert "transcript" not in updated.analysis

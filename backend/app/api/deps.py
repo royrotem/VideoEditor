@@ -18,6 +18,7 @@ from app.db.session import get_db_session
 from app.pipeline.frame_extractor import FrameExtractor
 from app.pipeline.probe import Probe
 from app.pipeline.renderer import Renderer
+from app.pipeline.transcriber import Transcriber
 from app.repositories.assets import AssetRepository
 from app.repositories.projects import ProjectRepository
 from app.repositories.render_jobs import EdlVersionRepository, RenderJobRepository
@@ -61,6 +62,18 @@ def get_frame_extractor(request: Request) -> FrameExtractor:
     return extractor
 
 
+def get_transcriber(request: Request) -> Transcriber:
+    """Return the process-wide :class:`Transcriber`.
+
+    Production wires :class:`WhisperTranscriber`. The lifespan keeps
+    a single instance so the (heavy) Whisper model is loaded at most
+    once per process - the actual model load is itself lazy, on the
+    first ``transcribe`` call.
+    """
+    transcriber: Transcriber = request.app.state.transcriber
+    return transcriber
+
+
 SessionDep = Annotated[AsyncSession, Depends(get_db_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings_dep)]
 ObjectStoreDep = Annotated[ObjectStore, Depends(get_object_store)]
@@ -68,6 +81,7 @@ LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
 ProbeDep = Annotated[Probe, Depends(get_probe)]
 RendererDep = Annotated[Renderer, Depends(get_renderer)]
 FrameExtractorDep = Annotated[FrameExtractor, Depends(get_frame_extractor)]
+TranscriberDep = Annotated[Transcriber, Depends(get_transcriber)]
 
 
 def get_project_repository(session: SessionDep) -> ProjectRepository:
@@ -138,6 +152,7 @@ def get_asset_analysis_service(
     assets: AssetRepoDep,
     frame_extractor: FrameExtractorDep,
     llm: LLMClientDep,
+    transcriber: TranscriberDep,
 ) -> AssetAnalysisService:
     return AssetAnalysisService(
         probe=probe,
@@ -145,6 +160,7 @@ def get_asset_analysis_service(
         assets=assets,
         frame_extractor=frame_extractor,
         llm=llm,
+        transcriber=transcriber,
     )
 
 
